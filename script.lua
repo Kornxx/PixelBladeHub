@@ -1,5 +1,5 @@
 --[[
-    Pixel Blade Hub - Código Maestro (Optimizado para Móvil + Auto-Caza de Jefes + AFK Infinito)
+    Pixel Blade Hub - Max Opt (Sin Radar UI + Auto-Caza Silenciosa + AFK Infinito)
 ]]
 
 local Players = game:GetService("Players")
@@ -46,15 +46,15 @@ local ignoreMobs = {
     "black_chest", "locked", "key_chest", "boss_chest", "key", "black"
 }
 
--- INTERFAZ GRÁFICA (HUD) LIGERA
+-- INTERFAZ GRÁFICA (HUD) COMPACTA Y LIGERA
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "PixelBladeSmartHub"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 240, 0, 395)
-MainFrame.Position = UDim2.new(0.5, -120, 0.5, -197)
+MainFrame.Size = UDim2.new(0, 240, 0, 310) -- Interfaz más pequeña
+MainFrame.Position = UDim2.new(0.5, -120, 0.5, -155)
 MainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 32)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = false
@@ -70,7 +70,7 @@ TopBar.Parent = MainFrame
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -60, 1, 0)
 Title.Position = UDim2.new(0, 5, 0, 0)
-Title.Text = "Blade Hub [Max Opt]"
+Title.Text = "Blade Hub [Ultra Ligero]"
 Title.TextColor3 = Color3.fromRGB(20, 20, 15)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 14
@@ -166,36 +166,20 @@ local colorOn = Color3.fromRGB(180, 220, 180)
 local colorOff = Color3.fromRGB(245, 245, 220)
 local raidColorOn = Color3.fromRGB(200, 180, 220) 
 
-local RadarDungeon = Instance.new("TextBox")
-RadarDungeon.Size = UDim2.new(1, -20, 0, 55)
-RadarDungeon.Position = UDim2.new(0, 10, 0, 5)
-RadarDungeon.Text = "Radar Optimizado (Esperando)..."
-RadarDungeon.TextColor3 = Color3.fromRGB(255, 255, 255)
-RadarDungeon.Font = Enum.Font.Code
-RadarDungeon.TextSize = 10
-RadarDungeon.TextWrapped = true
-RadarDungeon.ClearTextOnFocus = false
-RadarDungeon.MultiLine = true
-RadarDungeon.BackgroundColor3 = Color3.fromRGB(50, 50, 45)
-RadarDungeon.BorderSizePixel = 0
-RadarDungeon.Parent = DungeonTab
+-- Posiciones ajustadas hacia arriba al eliminar los radares
+local D_Farm = createButton(DungeonTab, "Auto-Farm Mobs", 15, "AutoFarm", colorOn, colorOff)
+local D_Cards = createButton(DungeonTab, "Auto-Cartas (Llama/Furia)", 45, "AutoCards", colorOn, colorOff)
+local D_Ulti = createButton(DungeonTab, "Auto-Habilidades (Ulti)", 75, "AutoUlti", colorOn, colorOff)
+local D_Chests = createButton(DungeonTab, "Romper Cofres", 105, "BreakObjects", colorOn, colorOff)
+local D_Zone = createButton(DungeonTab, "Auto-Avanzar (Portales)", 135, "AutoNextZone", colorOn, colorOff)
+local D_Boss = createButton(DungeonTab, "Auto-Botones (Jefes)", 165, "AutoButtons", colorOn, colorOff)
+local D_Continue = createButton(DungeonTab, "Auto-Seguir (Continuar)", 195, "AutoContinue", colorOn, colorOff)
 
-local D_Farm = createButton(DungeonTab, "Auto-Farm Mobs", 65, "AutoFarm", colorOn, colorOff)
-local D_Cards = createButton(DungeonTab, "Auto-Cartas (Llama/Furia)", 95, "AutoCards", colorOn, colorOff)
-local D_Ulti = createButton(DungeonTab, "Auto-Habilidades (Ulti)", 125, "AutoUlti", colorOn, colorOff)
-local D_Chests = createButton(DungeonTab, "Romper Cofres", 155, "BreakObjects", colorOn, colorOff)
-local D_Zone = createButton(DungeonTab, "Auto-Avanzar (Portales)", 185, "AutoNextZone", colorOn, colorOff)
-local D_Boss = createButton(DungeonTab, "Auto-Botones (Jefes)", 215, "AutoButtons", colorOn, colorOff)
-local D_Continue = createButton(DungeonTab, "Auto-Seguir (Continuar)", 245, "AutoContinue", colorOn, colorOff)
-
-local RadarRaid = RadarDungeon:Clone()
-RadarRaid.Parent = RaidTab
-
-local R_Farm = createButton(RaidTab, "Auto-Farm Raids", 65, "AutoFarm", raidColorOn, colorOff)
-local R_Cards = createButton(RaidTab, "Auto-Cartas (Llama/Furia)", 95, "AutoCards", raidColorOn, colorOff)
-local R_Ulti = createButton(RaidTab, "Auto-Habilidades (Ulti)", 125, "AutoUlti", raidColorOn, colorOff)
-local R_Tree = createButton(RaidTab, "Auto-Árbol (Sig. Oleada)", 155, "AutoTree", raidColorOn, colorOff)
-local R_Continue = createButton(RaidTab, "Auto-Seguir (Continuar)", 185, "AutoContinue", raidColorOn, colorOff)
+local R_Farm = createButton(RaidTab, "Auto-Farm Raids", 15, "AutoFarm", raidColorOn, colorOff)
+local R_Cards = createButton(RaidTab, "Auto-Cartas (Llama/Furia)", 45, "AutoCards", raidColorOn, colorOff)
+local R_Ulti = createButton(RaidTab, "Auto-Habilidades (Ulti)", 75, "AutoUlti", raidColorOn, colorOff)
+local R_Tree = createButton(RaidTab, "Auto-Árbol (Sig. Oleada)", 105, "AutoTree", raidColorOn, colorOff)
+local R_Continue = createButton(RaidTab, "Auto-Seguir (Continuar)", 135, "AutoContinue", raidColorOn, colorOff)
 
 local function syncButtons()
     D_Farm.Text = "Auto-Farm Mobs: " .. (getgenv().PixelBladeState.AutoFarm and "ON" or "OFF")
@@ -203,318 +187,4 @@ local function syncButtons()
     R_Farm.Text = "Auto-Farm Raids: " .. (getgenv().PixelBladeState.AutoFarm and "ON" or "OFF")
     R_Farm.BackgroundColor3 = getgenv().PixelBladeState.AutoFarm and raidColorOn or colorOff
 
-    D_Cards.Text = "Auto-Cartas (Llama/Furia): " .. (getgenv().PixelBladeState.AutoCards and "ON" or "OFF")
-    D_Cards.BackgroundColor3 = getgenv().PixelBladeState.AutoCards and colorOn or colorOff
-    R_Cards.Text = "Auto-Cartas (Llama/Furia): " .. (getgenv().PixelBladeState.AutoCards and "ON" or "OFF")
-    R_Cards.BackgroundColor3 = getgenv().PixelBladeState.AutoCards and raidColorOn or colorOff
-
-    D_Ulti.Text = "Auto-Habilidades (Ulti): " .. (getgenv().PixelBladeState.AutoUlti and "ON" or "OFF")
-    D_Ulti.BackgroundColor3 = getgenv().PixelBladeState.AutoUlti and colorOn or colorOff
-    R_Ulti.Text = "Auto-Habilidades (Ulti): " .. (getgenv().PixelBladeState.AutoUlti and "ON" or "OFF")
-    R_Ulti.BackgroundColor3 = getgenv().PixelBladeState.AutoUlti and raidColorOn or colorOff
-    
-    D_Continue.Text = "Auto-Seguir (Continuar): " .. (getgenv().PixelBladeState.AutoContinue and "ON" or "OFF")
-    D_Continue.BackgroundColor3 = getgenv().PixelBladeState.AutoContinue and colorOn or colorOff
-    R_Continue.Text = "Auto-Seguir (Continuar): " .. (getgenv().PixelBladeState.AutoContinue and "ON" or "OFF")
-    R_Continue.BackgroundColor3 = getgenv().PixelBladeState.AutoContinue and raidColorOn or colorOff
-end
-
-D_Farm.MouseButton1Click:Connect(syncButtons)
-R_Farm.MouseButton1Click:Connect(syncButtons)
-D_Cards.MouseButton1Click:Connect(syncButtons)
-R_Cards.MouseButton1Click:Connect(syncButtons)
-D_Ulti.MouseButton1Click:Connect(syncButtons)
-R_Ulti.MouseButton1Click:Connect(syncButtons)
-D_Continue.MouseButton1Click:Connect(syncButtons)
-R_Continue.MouseButton1Click:Connect(syncButtons)
-
-TabDungeonBtn.MouseButton1Click:Connect(function()
-    DungeonTab.Visible = true
-    RaidTab.Visible = false
-    TabDungeonBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 65)
-    TabDungeonBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    TabRaidBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 35)
-    TabRaidBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
-end)
-
-TabRaidBtn.MouseButton1Click:Connect(function()
-    DungeonTab.Visible = false
-    RaidTab.Visible = true
-    TabRaidBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 65)
-    TabRaidBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    TabDungeonBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 35)
-    TabDungeonBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
-end)
-
-local ExitBtn = Instance.new("TextButton")
-ExitBtn.Size = UDim2.new(1, -20, 0, 24)
-ExitBtn.Position = UDim2.new(0, 10, 1, -30)
-ExitBtn.Text = "Cerrar Hub por completo"
-ExitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-ExitBtn.Font = Enum.Font.SourceSansBold
-ExitBtn.TextSize = 11
-ExitBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
-ExitBtn.BorderSizePixel = 0
-ExitBtn.Parent = MainFrame
-
-local isMinimized = false
-MinimizeBtn.MouseButton1Click:Connect(function()
-    isMinimized = not isMinimized
-    if isMinimized then
-        MainFrame.Size = UDim2.new(0, 240, 0, 30)
-        MinimizeBtn.Text = "+"
-        DungeonTab.Visible = false
-        RaidTab.Visible = false
-        TabBar.Visible = false
-        ExitBtn.Visible = false
-    else
-        MainFrame.Size = UDim2.new(0, 240, 0, 395)
-        MinimizeBtn.Text = "-"
-        TabBar.Visible = true
-        ExitBtn.Visible = true
-        if TabDungeonBtn.BackgroundColor3 == Color3.fromRGB(70, 70, 65) then
-            DungeonTab.Visible = true
-        else
-            RaidTab.Visible = true
-        end
-    end
-end)
-
-CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
-ExitBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
-
-local cachedTargets = {}
-local cachedPortal = nil
-local cachedTree = nil
-local cachedButton = nil
-local isEnemyAlive = false
-
--- MOTOR 1: Radar Ligero y Asíncrono (Evita Lag en Móvil, se ejecuta cada 1.5s)
-task.spawn(function()
-    while true do
-        pcall(function()
-            local newTargets = {}
-            local pFound = nil
-            local tFound = nil
-            local bFound = nil
-            local unknownNames = {}
-            local char = player.Character
-            isEnemyAlive = false
-
-            for _, obj in ipairs(Workspace:GetDescendants()) do
-                if obj:IsA("Model") or obj:IsA("Part") then
-                    local name = obj.Name:lower()
-                    local hum = obj:FindFirstChildOfClass("Humanoid")
-                    
-                    if obj ~= char then
-                        local isIgnored = false
-                        local isChest = false
-                        
-                        if obj:IsDescendantOf(char) or name:find("player") or name:find(player.Name:lower()) then 
-                            isIgnored = true 
-                        end
-                        for _, ig in ipairs(ignoreMobs) do
-                            if name:find(ig) then isIgnored = true break end
-                        end
-
-                        if not isIgnored then
-                            if getgenv().PixelBladeState.BreakObjects then
-                                for _, chest in ipairs(chestNames) do 
-                                    if name:find(chest) and not name:find("black") and not name:find("key") and not name:find("locked") then 
-                                        isChest = true 
-                                        break 
-                                    end 
-                                end
-                            end
-
-                            -- Auto-Caza Absoluta: Si tiene vida y NO es un aliado/cofre negro, lo ataca obligatoriamente
-                            if (hum and hum.Health > 0 and hum.MaxHealth > 1) or isChest then
-                                if hum and not isChest then 
-                                    isEnemyAlive = true 
-                                    local isKnown = false
-                                    for _, mob in ipairs(targetMobs) do if name:find(mob) then isKnown = true break end end
-                                    if not isKnown and not unknownNames[obj.Name] then 
-                                        unknownNames[obj.Name] = true 
-                                    end
-                                end
-                                local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("PrimaryPart") or obj:FindFirstChildOfClass("Part")
-                                if root then table.insert(newTargets, root) end
-                            end
-
-                            if getgenv().PixelBladeState.AutoButtons then
-                                if (name:find("button") or name:find("switch") or name:find("lever") or name:find("mechanism")) and not name:find("chest") and not name:find("black") then
-                                    if not bFound then
-                                        bFound = obj:IsA("Part") and obj or obj:FindFirstChildOfClass("Part") or obj:FindFirstChild("PrimaryPart")
-                                    end
-                                end
-                            end
-                        end
-                    end
-
-                    if getgenv().PixelBladeState.AutoNextZone then
-                        if name:find("portal") or name:find("exit_door") or name:find("door") or name:find("next") then
-                            if not pFound then pFound = obj:IsA("Part") and obj or obj:FindFirstChildOfClass("Part") or obj:FindFirstChild("PrimaryPart") end
-                        end
-                    end
-                    
-                    if getgenv().PixelBladeState.AutoTree then
-                        if name:find("tree") or name:find("arbol") or name:find("circle") or name:find("spawn") or name:find("wave") then
-                            if not tFound then tFound = obj:IsA("Part") and obj or obj:FindFirstChildOfClass("Part") or obj:FindFirstChild("PrimaryPart") end
-                        end
-                    end
-                end
-            end
-            
-            cachedTargets = newTargets
-            cachedPortal = pFound
-            cachedTree = tFound
-            cachedButton = bFound
-
-            local unknownList = ""
-            for mobName, _ in pairs(unknownNames) do
-                unknownList = unknownList .. "[Auto-Cazado] " .. mobName .. "\n"
-            end
-
-            local radarText = unknownList ~= "" and "Nuevos Eliminados:\n" .. unknownList or "Radar limpio (Sin desconocidos)"
-            RadarDungeon.Text = radarText
-            RadarRaid.Text = radarText
-        end)
-        task.wait(1.5) -- Aumentado a 1.5s para no quemar el Snapdragon del Redmi
-    end
-end)
-
--- MOTOR 2: Escáner UI Optimizado (1 segundo de intervalo)
-task.spawn(function()
-    while true do
-        pcall(function()
-            if getgenv().PixelBladeState.AutoContinue then
-                for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
-                    if gui:IsA("TextButton") and gui.Visible then
-                        local text = gui.Text:lower()
-                        if text:find("seguir") or text:find("continuar") or text:find("next") or text:find("continue") then
-                            local absPos = gui.AbsolutePosition
-                            local absSize = gui.AbsoluteSize
-                            if absPos.X > 0 and absSize.X > 0 then
-                                for _, conn in ipairs(getconnections(gui.MouseButton1Click)) do conn:Fire() end
-                                for _, conn in ipairs(getconnections(gui.Activated)) do conn:Fire() end
-                                VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 1)
-                                task.wait(0.1)
-                                VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, false, game, 1)
-                                task.wait(1)
-                            end
-                        end
-                    end
-                end
-            end
-
-            if getgenv().PixelBladeState.AutoCards then
-                local priorityCard = nil
-                local anyCard = nil
-                
-                for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
-                    if gui:IsA("TextButton") and gui.Visible then
-                        local parentModel = gui.Parent
-                        local cardText = ""
-                        for _, sub in ipairs(parentModel:GetDescendants()) do
-                            if sub:IsA("TextLabel") or sub:IsA("TextBox") then
-                                cardText = cardText .. " " .. sub.Text:lower()
-                            end
-                        end
-                        cardText = cardText .. " " .. gui.Text:lower()
-
-                        if cardText:find("llama") or cardText:find("flame") or cardText:find("espiritus") or cardText:find("furia") or cardText:find("spirit") then
-                            priorityCard = gui
-                        else
-                            anyCard = gui
-                        end
-                    end
-                end
-                
-                local targetCard = priorityCard or anyCard
-                if targetCard then
-                    local absPos = targetCard.AbsolutePosition
-                    local absSize = targetCard.AbsoluteSize
-                    if absPos.X > 0 and absSize.X > 0 then
-                        for _, conn in ipairs(getconnections(targetCard.MouseButton1Click)) do conn:Fire() end
-                        for _, conn in ipairs(getconnections(targetCard.Activated)) do conn:Fire() end
-                        VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 1)
-                        task.wait(0.1)
-                        VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, false, game, 1)
-                    end
-                end
-            end
-        end)
-        task.wait(1) -- Escaneo relajado para estabilizar FPS
-    end
-end)
-
--- MOTOR 3: Combate Anti-Lag (Control de Distancia y Clicks Estabilizados)
-task.spawn(function()
-    while true do
-        pcall(function()
-            local char = player.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                local hrp = char.HumanoidRootPart
-                
-                if getgenv().PixelBladeState.AutoFarm and isEnemyAlive then
-                    local bestTarget = nil
-                    local minDistance = math.huge
-                    
-                    for _, root in ipairs(cachedTargets) do
-                        if root and root.Parent and root:IsDescendantOf(Workspace) then
-                            local dist = (hrp.Position - root.Position).Magnitude
-                            if dist < minDistance then
-                                minDistance = dist
-                                bestTarget = root
-                            end
-                        end
-                    end
-                    
-                    if bestTarget then
-                        -- SISTEMA ANTI-LAG: Si ya está cerca, no teletransporta, solo gira para atacar sin sacudir la cámara
-                        if minDistance > 4 then
-                            hrp.CFrame = bestTarget.CFrame * CFrame.new(0, 0, 3)
-                        else
-                            hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(bestTarget.Position.X, hrp.Position.Y, bestTarget.Position.Z))
-                        end
-                        
-                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-                        task.wait(0.1) -- Clic respetuoso con el procesador móvil
-                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
-                        
-                        if getgenv().PixelBladeState.AutoUlti then
-                            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
-                            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-                            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
-                            task.wait(0.05)
-                            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game)
-                            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-                            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
-                        end
-                    end
-                
-                elseif not isEnemyAlive then
-                    if getgenv().PixelBladeState.AutoNextZone and cachedPortal then
-                        if (hrp.Position - cachedPortal.Position).Magnitude > 4 then
-                            hrp.CFrame = cachedPortal.CFrame * CFrame.new(0, 2, 0)
-                        end
-                    elseif getgenv().PixelBladeState.AutoButtons and cachedButton then
-                        if (hrp.Position - cachedButton.Position).Magnitude > 4 then
-                            hrp.CFrame = cachedButton.CFrame * CFrame.new(0, 2, 2)
-                        end
-                        task.wait(0.2)
-                        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-                        task.wait(1.0)
-                        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-                    elseif getgenv().PixelBladeState.AutoTree and cachedTree then
-                        task.wait(1.5)
-                        if (hrp.Position - cachedTree.Position).Magnitude > 4 then
-                            hrp.CFrame = cachedTree.CFrame * CFrame.new(0, 2, 0)
-                        end
-                    end
-                end
-            end
-        end)
-        task.wait(0.1)
-    end
-end)
+    D_Cards.Text = "Auto-Cartas (Llama/Furia): " .. (getgenv().PixelBladeState.Auto
