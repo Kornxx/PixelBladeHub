@@ -1,5 +1,5 @@
 --[[
-    Pixel Blade Hub - UI Moderna + Auto-Cartas 100% Español + Círculo Raid
+    Pixel Blade Hub - Versión Definitiva (Cartas Reparadas + Spawn Raid Detectado)
 ]]
 
 local Players = game:GetService("Players")
@@ -79,7 +79,7 @@ UICorner_Top.Parent = TopBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -70, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "Blade Hub [Pro V4]"
+Title.Text = "Blade Hub [Pro V5]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -175,7 +175,7 @@ end
 
 -- Elementos Dungeon
 local D_Farm = createButton(DungeonTab, "Auto-Farm Mobs", 0, "AutoFarm", colorOn)
-local D_Cards = createButton(DungeonTab, "Auto-Cartas (Español)", 35, "AutoCards", colorOn)
+local D_Cards = createButton(DungeonTab, "Auto-Cartas (Blindado)", 35, "AutoCards", colorOn)
 local D_Ulti = createButton(DungeonTab, "Auto-Habilidades (Sin Dash)", 70, "AutoUlti", colorOn)
 local D_Chests = createButton(DungeonTab, "Romper Cofres", 105, "BreakObjects", colorOn)
 local D_Zone = createButton(DungeonTab, "Auto-Avanzar (Portales)", 140, "AutoNextZone", colorOn)
@@ -198,7 +198,7 @@ RadarRaid.Parent = RaidTab
 Instance.new("UICorner", RadarRaid).CornerRadius = UDim.new(0, 6)
 
 local R_Farm = createButton(RaidTab, "Auto-Farm Raids", 50, "AutoFarm", raidColorOn)
-local R_Cards = createButton(RaidTab, "Auto-Cartas (Español)", 85, "AutoCards", raidColorOn)
+local R_Cards = createButton(RaidTab, "Auto-Cartas (Blindado)", 85, "AutoCards", raidColorOn)
 local R_Ulti = createButton(RaidTab, "Auto-Habilidades (Sin Dash)", 120, "AutoUlti", raidColorOn)
 local R_Tree = createButton(RaidTab, "Auto Círculo Morado (Oleadas)", 155, "AutoTree", raidColorOn)
 local R_Continue = createButton(RaidTab, "Auto-Seguir (Continuar)", 190, "AutoContinue", raidColorOn)
@@ -209,9 +209,9 @@ local function syncButtons()
     R_Farm.Text = "Auto-Farm Raids: " .. (getgenv().PixelBladeState.AutoFarm and "ON" or "OFF")
     R_Farm.BackgroundColor3 = getgenv().PixelBladeState.AutoFarm and raidColorOn or colorOff
 
-    D_Cards.Text = "Auto-Cartas (Español): " .. (getgenv().PixelBladeState.AutoCards and "ON" or "OFF")
+    D_Cards.Text = "Auto-Cartas (Blindado): " .. (getgenv().PixelBladeState.AutoCards and "ON" or "OFF")
     D_Cards.BackgroundColor3 = getgenv().PixelBladeState.AutoCards and colorOn or colorOff
-    R_Cards.Text = "Auto-Cartas (Español): " .. (getgenv().PixelBladeState.AutoCards and "ON" or "OFF")
+    R_Cards.Text = "Auto-Cartas (Blindado): " .. (getgenv().PixelBladeState.AutoCards and "ON" or "OFF")
     R_Cards.BackgroundColor3 = getgenv().PixelBladeState.AutoCards and raidColorOn or colorOff
 
     D_Ulti.Text = "Auto-Habilidades (Sin Dash): " .. (getgenv().PixelBladeState.AutoUlti and "ON" or "OFF")
@@ -284,7 +284,7 @@ local cachedTree = nil
 local cachedButton = nil
 local isEnemyAlive = false
 
--- MOTOR 1: Escáner Optimizado con Radar Raid Visual
+-- MOTOR 1: Escáner Optimizado (Ya detecta "spawn" para el círculo morado)
 task.spawn(function()
     while true do
         pcall(function()
@@ -375,11 +375,11 @@ task.spawn(function()
     end
 end)
 
--- MOTOR 2: Interfaz (Auto-Cartas 100% en Español y Seguir Estricto)
+-- MOTOR 2: Interfaz Blindada (Auto-Cartas y Auto-Seguir ultra agresivos)
 task.spawn(function()
     while true do
         pcall(function()
-            -- 1. Auto-Seguir (Solo botones de continuar / seguir)
+            -- 1. Auto-Seguir
             if getgenv().PixelBladeState.AutoContinue then
                 for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
                     if gui:IsA("TextButton") and gui.Visible then
@@ -388,6 +388,8 @@ task.spawn(function()
                             local absPos = gui.AbsolutePosition
                             local absSize = gui.AbsoluteSize
                             if absPos.X > 0 and absSize.X > 0 then
+                                for _, conn in ipairs(getconnections(gui.MouseButton1Click)) do conn:Fire() end
+                                for _, conn in ipairs(getconnections(gui.Activated)) do conn:Fire() end
                                 VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 1)
                                 task.wait(0.1)
                                 VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, false, game, 1)
@@ -398,14 +400,14 @@ task.spawn(function()
                 end
             end
 
-            -- 2. Auto-Cartas (Busca directamente el texto "elegir" en español)
+            -- 2. Auto-Cartas 100% Blindado (Escaneo general de textos en PlayerGui)
             if getgenv().PixelBladeState.AutoCards then
                 local foundCards = {}
                 for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
                     if gui:IsA("TextButton") and gui.Visible then
                         local btnText = gui.Text:lower()
-                        -- Búsqueda directa en español y también inglés por seguridad
-                        if btnText:find("elegir") or btnText:find("choose") or btnText:find("select") then
+                        -- Captura cualquier botón que diga elegir, select, choose o que esté dentro de un menú de cartas
+                        if btnText:find("elegir") or btnText:find("choose") or btnText:find("select") or gui.Name:lower():find("card") or gui.Name:lower():find("carta") then
                             table.insert(foundCards, gui)
                         end
                     end
@@ -416,6 +418,8 @@ task.spawn(function()
                     local absPos = randomCard.AbsolutePosition
                     local absSize = randomCard.AbsoluteSize
                     if absPos.X > 0 and absSize.X > 0 then
+                        for _, conn in ipairs(getconnections(randomCard.MouseButton1Click)) do conn:Fire() end
+                        for _, conn in ipairs(getconnections(randomCard.Activated)) do conn:Fire() end
                         VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 1)
                         task.wait(0.1)
                         VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, false, game, 1)
@@ -424,7 +428,7 @@ task.spawn(function()
                 end
             end
         end)
-        task.wait(0.5)
+        task.wait(0.3)
     end
 end)
 
