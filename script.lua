@@ -1,5 +1,5 @@
 --[[
-    Pixel Blade Hub - Ataque Clásico (Cero Lag) + Anti-Aliados + Ulti
+    Pixel Blade Hub - Versión Definitiva (HUD Fijo sin Bugs + Anti-Aliados)
 ]]
 
 local Players = game:GetService("Players")
@@ -27,7 +27,7 @@ local targetMobs = {
 }
 local chestNames = {"chest", "crate"}
 
--- Lista Negra (Ignora aliados, mascotas o NPCs como tu invocación)
+-- Lista Negra estricta para ignorar a tu aliado invocable (necromancer)
 local ignoreMobs = {
     "necromancer", "tutorial_clyde", "ally", "summon", "pet", "familiar"
 }
@@ -36,13 +36,14 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "PixelBladeSmartHub"
 ScreenGui.Parent = CoreGui
 
+-- HUD FIJO Y CENTRADO (Adiós al bug de que se pierda arriba a la izquierda)
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 240, 0, 330)
 MainFrame.Position = UDim2.new(0.5, -120, 0.5, -165)
 MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 35)
 MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Draggable = true
+MainFrame.Active = false
+MainFrame.Draggable = false -- Desactivado para evitar que se buguee en móvil
 MainFrame.Parent = ScreenGui
 
 local TopBar = Instance.new("Frame")
@@ -54,7 +55,7 @@ TopBar.Parent = MainFrame
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -60, 1, 0)
 Title.Position = UDim2.new(0, 5, 0, 0)
-Title.Text = "Blade Hub [Ultra]"
+Title.Text = "Blade Hub [Fixed]"
 Title.TextColor3 = Color3.fromRGB(20, 20, 15)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 13
@@ -223,7 +224,7 @@ local cachedTargets = {}
 local cachedPortal = nil
 local isEnemyAlive = false
 
--- MOTOR 1: Radar y Escáner Profundo (Filtra Aliados)
+-- MOTOR 1: Radar y Escáner Profundo (Filtro Anti-Aliados mejorado)
 task.spawn(function()
     while true do
         pcall(function()
@@ -242,7 +243,7 @@ task.spawn(function()
                     local isKnown = false
                     local isChest = false
                     
-                    -- Filtro estricto: Si es tu aliado o tiene tu nombre, ignóralo
+                    -- Filtro estricto: Ignora jugadores, clones y cualquier invocación aliada
                     if name:find("player") or name:find(player.Name:lower()) then isIgnored = true end
                     for _, ig in ipairs(ignoreMobs) do
                         if name:find(ig) then isIgnored = true break end
@@ -326,6 +327,7 @@ task.spawn(function()
         pcall(function()
             local char = player.Character
             if char and char:FindFirstChild("HumanoidRootPart") then
+                let = char.HumanoidRootPart
                 local hrp = char.HumanoidRootPart
                 
                 if getgenv().PixelBladeState.AutoFarm then
