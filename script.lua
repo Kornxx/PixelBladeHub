@@ -1,11 +1,10 @@
 --[[
-    Pixel Blade Hub - Auto Farm (Cannon Goblin, Mage, Giant)
+    Pixel Blade Hub - Auto Farm con Ataque Directo por Herramienta
 ]]
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
-local VirtualInputManager = game:GetService("VirtualInputManager")
 local player = Players.LocalPlayer
 
 if CoreGui:FindFirstChild("PixelBladeSmartHub") then
@@ -193,7 +192,6 @@ local function getBestTarget()
             if humanoid and humanoid.Health > 0 and name ~= "player" and not name:find("ishiro") and name ~= "tutorial_clyde" then
                 discoveredMobs = discoveredMobs .. obj.Name .. "\n"
 
-                -- Lista completa incluyendo los nuevos: cannon_goblin, mage, giant
                 local isKnown = name:find("zombie") or name:find("archer") or name:find("mortar") or name:find("ghoul") or name:find("lumberjack") or name:find("cannon_goblin") or name:find("mage") or name:find("giant")
                 local isChest = getgenv().PixelBladeState.BreakObjects and (name:find("chest") or name:find("crate"))
 
@@ -220,37 +218,28 @@ local function getBestTarget()
     return bestTarget
 end
 
--- Motor principal de combate y auto-cartas
+-- Motor principal con activación directa de herramienta/arma para golpear
 task.spawn(function()
     while true do
         pcall(function()
+            -- Auto-Cartas: Clic directo en botones de interfaz
             if getgenv().PixelBladeState.AutoCards then
-                for _, gui in ipairs(game:GetService("CoreGui"):GetDescendants()) do
-                    if (gui:IsA("TextButton") or gui:IsA("ImageButton")) and (gui.Name:lower():find("elegir") or (gui:IsA("TextButton") and gui.Text:upper():find("ELEGIR"))) then
-                        local absPos = gui.AbsolutePosition
-                        local absSize = gui.AbsoluteSize
-                        if absPos.X > 0 and absSize.X > 0 then
-                            VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 1)
-                            task.wait(0.05)
-                            VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, false, game, 1)
-                            task.wait(1.5)
-                        end
-                    end
-                end
                 for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
-                    if (gui:IsA("TextButton") or gui:IsA("ImageButton")) and (gui.Name:lower():find("elegir") or (gui:IsA("TextButton") and gui.Text:upper():find("ELEGIR"))) then
-                        local absPos = gui.AbsolutePosition
-                        local absSize = gui.AbsoluteSize
-                        if absPos.X > 0 and absSize.X > 0 then
-                            VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 1)
-                            task.wait(0.05)
-                            VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, false, game, 1)
-                            task.wait(1.5)
+                    if (gui:IsA("TextButton") or gui:IsA("ImageButton")) and gui.Visible then
+                        if (gui:IsA("TextButton") and gui.Text:upper():find("ELEGIR")) or gui.Name:lower():find("elegir") then
+                            -- Disparar evento de presionar botón nativo de Roblox
+                            for _, connection in ipairs(getconnections(gui.MouseButton1Click)) do
+                                connection:Fire()
+                            end
+                            for _, connection in ipairs(getconnections(gui.Activated)) do
+                                connection:Fire()
+                            end
                         end
                     end
                 end
             end
 
+            -- Auto-Farm: Teletransporte y activación de arma
             if getgenv().PixelBladeState.AutoFarm then
                 local char = player.Character
                 if char and char:FindFirstChild("HumanoidRootPart") then
@@ -259,13 +248,25 @@ task.spawn(function()
                     
                     if target then
                         hrp.CFrame = target.CFrame * CFrame.new(0, 0, 2.5)
-                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-                        task.wait(0.05)
-                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+                        
+                        -- Busca el arma equipada o herramienta en el personaje y actívala
+                        local tool = char:FindFirstChildOfClass("Tool")
+                        if tool then
+                            tool:Activate()
+                        else
+                            -- Si guarda el arma en el BackPack, intenta equiparla
+                            local backpack = player:FindFirstChildOfClass("Backpack")
+                            if backpack then
+                                local bpTool = backpack:FindFirstChildOfClass("Tool")
+                                if bpTool then
+                                    player.Character.Humanoid:EquipTool(bpTool)
+                                end
+                            end
+                        end
                     end
                 end
             end
         end)
-        task.wait(0.2)
+        task.wait(0.15)
     end
 end)
