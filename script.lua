@@ -1,24 +1,38 @@
 --[[
-    Pixel Blade Hub - Versión Definitiva (HUD Fijo sin Bugs + Anti-Aliados)
+    Pixel Blade Hub - Definitivo (HUD Fijo + Auto-Rejoin + Guardado de Config + Anti-Aliados)
 ]]
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
 local VirtualInputManager = game:GetService("VirtualInputManager")
+local TeleportService = game:GetService("TeleportService")
 local player = Players.LocalPlayer
 
 if CoreGui:FindFirstChild("PixelBladeSmartHub") then
     CoreGui.PixelBladeSmartHub:Destroy()
 end
 
-getgenv().PixelBladeState = {
-    AutoFarm = false,
-    AutoCards = true,
-    BreakObjects = true,
-    AutoUlti = false,
-    AutoNextZone = false
-}
+-- SISTEMA DE MEMORIA PERSISTENTE (Mantiene tu configuración tras el rejoin)
+if not getgenv().PixelBladeState then
+    getgenv().PixelBladeState = {
+        AutoFarm = false,
+        AutoCards = true,
+        BreakObjects = true,
+        AutoUlti = false,
+        AutoNextZone = false
+    }
+end
+
+-- AUTO-REJOIN Y AUTO-EJECUCIÓN AL CAMBIAR DE ZONA/SERVIDOR
+pcall(function()
+    if queue_on_teleport then
+        queue_on_teleport([[
+            task.wait(3)
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/Kornxx/PixelBladeHub/refs/heads/main/script.lua?t=" .. tostring(tick())))()
+        ]])
+    end
+end)
 
 -- Lista de objetivos confirmados
 local targetMobs = {
@@ -27,7 +41,7 @@ local targetMobs = {
 }
 local chestNames = {"chest", "crate"}
 
--- Lista Negra estricta para ignorar a tu aliado invocable (necromancer)
+-- Lista Negra para ignorar a tu aliado invocable (necromancer)
 local ignoreMobs = {
     "necromancer", "tutorial_clyde", "ally", "summon", "pet", "familiar"
 }
@@ -36,14 +50,14 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "PixelBladeSmartHub"
 ScreenGui.Parent = CoreGui
 
--- HUD FIJO Y CENTRADO (Adiós al bug de que se pierda arriba a la izquierda)
+-- HUD FIJO Y CENTRADO (Sin bugs de arrastre)
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 240, 0, 330)
 MainFrame.Position = UDim2.new(0.5, -120, 0.5, -165)
 MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 35)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = false
-MainFrame.Draggable = false -- Desactivado para evitar que se buguee en móvil
+MainFrame.Draggable = false
 MainFrame.Parent = ScreenGui
 
 local TopBar = Instance.new("Frame")
@@ -55,7 +69,7 @@ TopBar.Parent = MainFrame
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -60, 1, 0)
 Title.Position = UDim2.new(0, 5, 0, 0)
-Title.Text = "Blade Hub [Fixed]"
+Title.Text = "Blade Hub [AFK]"
 Title.TextColor3 = Color3.fromRGB(20, 20, 15)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 13
@@ -104,14 +118,15 @@ RadarBox.BackgroundColor3 = Color3.fromRGB(50, 50, 45)
 RadarBox.BorderSizePixel = 0
 RadarBox.Parent = ContentContainer
 
+-- BOTÓN AUTO-FARM (Con estado guardado)
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Size = UDim2.new(1, -20, 0, 30)
 ToggleBtn.Position = UDim2.new(0, 10, 0, 115)
-ToggleBtn.Text = "Auto-Farm Mobs: OFF"
+ToggleBtn.Text = "Auto-Farm Mobs: " .. (getgenv().PixelBladeState.AutoFarm and "ON" or "OFF")
 ToggleBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
 ToggleBtn.Font = Enum.Font.SourceSansBold
 ToggleBtn.TextSize = 12
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(245, 245, 220)
+ToggleBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoFarm and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
 ToggleBtn.BorderSizePixel = 0
 ToggleBtn.Parent = ContentContainer
 
@@ -121,14 +136,15 @@ ToggleBtn.MouseButton1Click:Connect(function()
     ToggleBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoFarm and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
 end)
 
+-- BOTÓN AUTO-CARTAS (Con estado guardado)
 local CardBtn = Instance.new("TextButton")
 CardBtn.Size = UDim2.new(1, -20, 0, 30)
 CardBtn.Position = UDim2.new(0, 10, 0, 150)
-CardBtn.Text = "Auto-Cartas: ON"
+CardBtn.Text = "Auto-Cartas: " .. (getgenv().PixelBladeState.AutoCards and "ON" or "OFF")
 CardBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
 CardBtn.Font = Enum.Font.SourceSansBold
 CardBtn.TextSize = 12
-CardBtn.BackgroundColor3 = Color3.fromRGB(180, 220, 180)
+CardBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoCards and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
 CardBtn.BorderSizePixel = 0
 CardBtn.Parent = ContentContainer
 
@@ -138,14 +154,15 @@ CardBtn.MouseButton1Click:Connect(function()
     CardBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoCards and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
 end)
 
+-- BOTÓN ROMPER COFRES (Con estado guardado)
 local ChestBtn = Instance.new("TextButton")
 ChestBtn.Size = UDim2.new(1, -20, 0, 30)
 ChestBtn.Position = UDim2.new(0, 10, 0, 185)
-ChestBtn.Text = "Romper Cofres: ON"
+ChestBtn.Text = "Romper Cofres: " .. (getgenv().PixelBladeState.BreakObjects and "ON" or "OFF")
 ChestBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
 ChestBtn.Font = Enum.Font.SourceSansBold
 ChestBtn.TextSize = 12
-ChestBtn.BackgroundColor3 = Color3.fromRGB(180, 220, 180)
+ChestBtn.BackgroundColor3 = getgenv().PixelBladeState.BreakObjects and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
 ChestBtn.BorderSizePixel = 0
 ChestBtn.Parent = ContentContainer
 
@@ -155,14 +172,15 @@ ChestBtn.MouseButton1Click:Connect(function()
     ChestBtn.BackgroundColor3 = getgenv().PixelBladeState.BreakObjects and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
 end)
 
+-- BOTÓN AUTO-ULTI (Con estado guardado)
 local UltiBtn = Instance.new("TextButton")
 UltiBtn.Size = UDim2.new(1, -20, 0, 30)
 UltiBtn.Position = UDim2.new(0, 10, 0, 220)
-UltiBtn.Text = "Auto-Habilidades (Ulti): OFF"
+UltiBtn.Text = "Auto-Habilidades (Ulti): " .. (getgenv().PixelBladeState.AutoUlti and "ON" or "OFF")
 UltiBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
 UltiBtn.Font = Enum.Font.SourceSansBold
 UltiBtn.TextSize = 12
-UltiBtn.BackgroundColor3 = Color3.fromRGB(245, 245, 220)
+UltiBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoUlti and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
 UltiBtn.BorderSizePixel = 0
 UltiBtn.Parent = ContentContainer
 
@@ -172,14 +190,15 @@ UltiBtn.MouseButton1Click:Connect(function()
     UltiBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoUlti and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
 end)
 
+-- BOTÓN AUTO-AVANZAR ZONA (Con estado guardado)
 local ZoneBtn = Instance.new("TextButton")
 ZoneBtn.Size = UDim2.new(1, -20, 0, 30)
 ZoneBtn.Position = UDim2.new(0, 10, 0, 255)
-ZoneBtn.Text = "Auto-Avanzar Zona: OFF"
+ZoneBtn.Text = "Auto-Avanzar Zona: " .. (getgenv().PixelBladeState.AutoNextZone and "ON" or "OFF")
 ZoneBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
 ZoneBtn.Font = Enum.Font.SourceSansBold
 ZoneBtn.TextSize = 12
-ZoneBtn.BackgroundColor3 = Color3.fromRGB(245, 245, 220)
+ZoneBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoNextZone and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
 ZoneBtn.BorderSizePixel = 0
 ZoneBtn.Parent = ContentContainer
 
@@ -224,7 +243,7 @@ local cachedTargets = {}
 local cachedPortal = nil
 local isEnemyAlive = false
 
--- MOTOR 1: Radar y Escáner Profundo (Filtro Anti-Aliados mejorado)
+-- MOTOR 1: Radar y Escáner Profundo (Filtro Anti-Aliados)
 task.spawn(function()
     while true do
         pcall(function()
@@ -243,7 +262,6 @@ task.spawn(function()
                     local isKnown = false
                     local isChest = false
                     
-                    -- Filtro estricto: Ignora jugadores, clones y cualquier invocación aliada
                     if name:find("player") or name:find(player.Name:lower()) then isIgnored = true end
                     for _, ig in ipairs(ignoreMobs) do
                         if name:find(ig) then isIgnored = true break end
@@ -261,13 +279,11 @@ task.spawn(function()
                             if root then table.insert(newTargets, root) end
                         end
 
-                        -- Radar de nuevos mobs
                         if hum and hum.Health > 0 and not isKnown then
                             detected = detected .. "[Mob] " .. obj.Name .. "\n"
                         end
                     end
 
-                    -- Buscar Portales
                     if getgenv().PixelBladeState.AutoNextZone then
                         if name:find("portal") or name:find("door") or name:find("zone") or name:find("gate") or name:find("teleport") or name:find("next") then
                             detected = detected .. "[Portal] " .. obj.Name .. "\n"
@@ -327,7 +343,6 @@ task.spawn(function()
         pcall(function()
             local char = player.Character
             if char and char:FindFirstChild("HumanoidRootPart") then
-                let = char.HumanoidRootPart
                 local hrp = char.HumanoidRootPart
                 
                 if getgenv().PixelBladeState.AutoFarm then
