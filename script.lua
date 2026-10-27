@@ -1,5 +1,5 @@
 --[[
-    Pixel Blade Hub - UI Moderna (Dark Mode) + Raid Circle Fix + Random Cards
+    Pixel Blade Hub - UI Moderna + Radar Raid Silencioso + Cartas Random
 ]]
 
 local Players = game:GetService("Players")
@@ -54,9 +54,9 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 250, 0, 340)
-MainFrame.Position = UDim2.new(0.5, -125, 0.5, -170)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 22) -- Dark Mode
+MainFrame.Size = UDim2.new(0, 250, 0, 395) -- Ligeramente más alto para albergar el mini radar
+MainFrame.Position = UDim2.new(0.5, -125, 0.5, -197)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 22)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
@@ -79,7 +79,7 @@ UICorner_Top.Parent = TopBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -70, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "Blade Hub [Pro V2]"
+Title.Text = "Blade Hub [Pro V3]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -173,6 +173,7 @@ local function createButton(parent, text, yPos, stateKey, activeColor)
     return btn
 end
 
+-- Elementos Dungeon
 local D_Farm = createButton(DungeonTab, "Auto-Farm Mobs", 0, "AutoFarm", colorOn)
 local D_Cards = createButton(DungeonTab, "Auto-Cartas (Aleatorio)", 35, "AutoCards", colorOn)
 local D_Ulti = createButton(DungeonTab, "Auto-Habilidades (Sin Dash)", 70, "AutoUlti", colorOn)
@@ -181,11 +182,26 @@ local D_Zone = createButton(DungeonTab, "Auto-Avanzar (Portales)", 140, "AutoNex
 local D_Boss = createButton(DungeonTab, "Auto-Botones (Jefes)", 175, "AutoButtons", colorOn)
 local D_Continue = createButton(DungeonTab, "Auto-Seguir (Continuar)", 210, "AutoContinue", colorOn)
 
-local R_Farm = createButton(RaidTab, "Auto-Farm Raids", 0, "AutoFarm", raidColorOn)
-local R_Cards = createButton(RaidTab, "Auto-Cartas (Aleatorio)", 35, "AutoCards", raidColorOn)
-local R_Ulti = createButton(RaidTab, "Auto-Habilidades (Sin Dash)", 70, "AutoUlti", raidColorOn)
-local R_Tree = createButton(RaidTab, "Auto Círculo Morado (Oleadas)", 105, "AutoTree", raidColorOn)
-local R_Continue = createButton(RaidTab, "Auto-Seguir (Continuar)", 140, "AutoContinue", raidColorOn)
+-- Mini Radar exclusivo para la Pestaña Raid
+local RadarRaid = Instance.new("TextBox")
+RadarRaid.Size = UDim2.new(1, -20, 0, 45)
+RadarRaid.Position = UDim2.new(0, 10, 0, 0)
+RadarRaid.Text = "[Radar Raid] Buscando círculo morado..."
+RadarRaid.TextColor3 = Color3.fromRGB(220, 180, 255)
+RadarRaid.Font = Enum.Font.Code
+RadarRaid.TextSize = 10
+RadarRaid.TextWrapped = true
+RadarRaid.ClearTextOnFocus = false
+RadarRaid.BackgroundColor3 = Color3.fromRGB(30, 25, 35)
+RadarRaid.BorderSizePixel = 0
+RadarRaid.Parent = RaidTab
+Instance.new("UICorner", RadarRaid).CornerRadius = UDim.new(0, 6)
+
+local R_Farm = createButton(RaidTab, "Auto-Farm Raids", 50, "AutoFarm", raidColorOn)
+local R_Cards = createButton(RaidTab, "Auto-Cartas (Aleatorio)", 85, "AutoCards", raidColorOn)
+local R_Ulti = createButton(RaidTab, "Auto-Habilidades (Sin Dash)", 120, "AutoUlti", raidColorOn)
+local R_Tree = createButton(RaidTab, "Auto Círculo Morado (Oleadas)", 155, "AutoTree", raidColorOn)
+local R_Continue = createButton(RaidTab, "Auto-Seguir (Continuar)", 190, "AutoContinue", raidColorOn)
 
 local function syncButtons()
     D_Farm.Text = "Auto-Farm Mobs: " .. (getgenv().PixelBladeState.AutoFarm and "ON" or "OFF")
@@ -247,7 +263,7 @@ MinimizeBtn.MouseButton1Click:Connect(function()
         DungeonTab.Visible = false
         RaidTab.Visible = false
     else
-        MainFrame.Size = UDim2.new(0, 250, 0, 340)
+        MainFrame.Size = UDim2.new(0, 250, 0, 395)
         TabBar.Visible = true
         if TabDungeonBtn.BackgroundTransparency == 0 then
             DungeonTab.Visible = true
@@ -268,7 +284,7 @@ local cachedTree = nil
 local cachedButton = nil
 local isEnemyAlive = false
 
--- MOTOR 1: Escáner (Mobs Reales y Círculos de Raid)
+-- MOTOR 1: Escáner Optimizado con Radar Raid Visual
 task.spawn(function()
     while true do
         pcall(function()
@@ -276,6 +292,7 @@ task.spawn(function()
             local pFound = nil
             local tFound = nil
             local bFound = nil
+            local treeNameFound = "Ninguno"
             local char = player.Character
             isEnemyAlive = false
 
@@ -305,7 +322,6 @@ task.spawn(function()
                                 end
                             end
 
-                            -- Solo ataca si tiene vida real y no es decoración
                             if (hum and hum.Health > 0 and hum.MaxHealth > 5) or isChest then
                                 local isKnown = false
                                 for _, mob in ipairs(targetMobs) do 
@@ -333,11 +349,13 @@ task.spawn(function()
                         end
                     end
                     
-                    -- Escáner Especial para Círculo Morado / Raid
+                    -- Detección ultra precisa del círculo morado / raid
                     if getgenv().PixelBladeState.AutoTree then
-                        -- Busca por nombres clave de inicio de raid, o si tiene un ProximityPrompt (botón E interactuable)
                         if name:find("circle") or name:find("raid") or name:find("spawn") or name:find("wave") or obj:FindFirstChildOfClass("ProximityPrompt") then
-                            if not tFound then tFound = obj:IsA("Part") and obj or obj:IsA("MeshPart") and obj or obj:FindFirstChildOfClass("Part") end
+                            if not tFound then 
+                                tFound = obj:IsA("Part") and obj or obj:IsA("MeshPart") and obj or obj:FindFirstChildOfClass("Part") 
+                                treeNameFound = obj.Name
+                            end
                         end
                     end
                 end
@@ -347,6 +365,12 @@ task.spawn(function()
             cachedPortal = pFound
             cachedTree = tFound
             cachedButton = bFound
+
+            if tFound then
+                RadarRaid.Text = "[Radar Raid] ¡Círculo detectado!\nObjeto: " .. treeNameFound
+            else
+                RadarRaid.Text = "[Radar Raid] Esperando fin de oleada..."
+            end
         end)
         task.wait(1.0)
     end
@@ -356,7 +380,6 @@ end)
 task.spawn(function()
     while true do
         pcall(function()
-            -- 1. Auto-Seguir (SOLO SEGUIR, ignora salir/lobby)
             if getgenv().PixelBladeState.AutoContinue then
                 for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
                     if gui:IsA("TextButton") and gui.Visible then
@@ -375,7 +398,6 @@ task.spawn(function()
                 end
             end
 
-            -- 2. Auto-Cartas 100% Aleatorias
             if getgenv().PixelBladeState.AutoCards then
                 local foundCards = {}
                 for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
@@ -387,7 +409,6 @@ task.spawn(function()
                     end
                 end
                 
-                -- Elige una carta de la lista al azar
                 if #foundCards > 0 then
                     local randomCard = foundCards[math.random(1, #foundCards)]
                     local absPos = randomCard.AbsolutePosition
@@ -438,7 +459,6 @@ task.spawn(function()
                         task.wait(0.1)
                         VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
                         
-                        -- Auto-Ulti (Sin apretar la Q para evitar el dash)
                         if getgenv().PixelBladeState.AutoUlti then
                             VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
                             VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
@@ -462,7 +482,7 @@ task.spawn(function()
                         task.wait(1.0)
                         VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
                     elseif getgenv().PixelBladeState.AutoTree and cachedTree then
-                        task.wait(2.0) -- Espera 2 segundos al acabar la oleada antes de saltar al círculo
+                        task.wait(2.0)
                         if (hrp.Position - cachedTree.Position).Magnitude > 4 then
                             hrp.CFrame = cachedTree.CFrame * CFrame.new(0, 2, 0)
                         end
