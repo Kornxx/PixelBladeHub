@@ -43,7 +43,7 @@ Title.TextSize = 14
 Title.BackgroundTransparency = 1
 Title.Parent = TopBar
 
--- Etiqueta donde mostraremos el resultado DIRECTO en la pantallita del HUD
+-- Etiqueta donde muestra el resultado en la pantallita del HUD
 local StatusLabel = Instance.new("TextLabel")
 StatusLabel.Size = UDim2.new(1, -20, 0, 40)
 StatusLabel.Position = UDim2.new(0, 10, 0, 40)
@@ -88,7 +88,7 @@ ExitBtn.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
 
--- Loop que lee las carpetas y cambia el texto DIRECTO en el menú flotante
+-- Loop que lee las carpetas y cambia el texto en el menú flotante
 task.spawn(function()
     while true do
         if getgenv().PixelBladeState.InspectMap then
