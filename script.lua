@@ -1,10 +1,11 @@
 --[[
-    Pixel Blade Hub - Auto Farm con Ataque Directo por Herramienta
+    Pixel Blade Hub - Versión OPTIMIZADA (Cero Lag)
 ]]
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 local player = Players.LocalPlayer
 
 if CoreGui:FindFirstChild("PixelBladeSmartHub") then
@@ -16,6 +17,10 @@ getgenv().PixelBladeState = {
     AutoCards = true,
     BreakObjects = true
 }
+
+-- Listas de objetivos guardadas en memoria rápida
+local targetMobs = {"zombie", "archer", "mortar", "ghoul", "lumberjack", "cannon_goblin", "mage", "giant"}
+local chestNames = {"chest", "crate"}
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "PixelBladeSmartHub"
@@ -39,10 +44,10 @@ TopBar.Parent = MainFrame
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -60, 1, 0)
 Title.Position = UDim2.new(0, 5, 0, 0)
-Title.Text = "Blade Hub"
+Title.Text = "Blade Hub [Optimized]"
 Title.TextColor3 = Color3.fromRGB(20, 20, 15)
 Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 13
+Title.TextSize = 12
 Title.BackgroundTransparency = 1
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = TopBar
@@ -77,7 +82,7 @@ ContentContainer.Parent = MainFrame
 local RadarBox = Instance.new("TextBox")
 RadarBox.Size = UDim2.new(1, -20, 0, 70)
 RadarBox.Position = UDim2.new(0, 10, 0, 38)
-RadarBox.Text = "Escaneando entidades..."
+RadarBox.Text = "Radar en espera..."
 RadarBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 RadarBox.Font = Enum.Font.Code
 RadarBox.TextSize = 10
@@ -175,94 +180,124 @@ ExitBtn.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
 
-local function getBestTarget()
-    local char = player.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
-    local hrp = char.HumanoidRootPart
-
-    local bestTarget = nil
-    local minDistance = math.huge
-    local discoveredMobs = ""
-
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("Model") and obj ~= char then
-            local name = obj.Name:lower()
-            local humanoid = obj:FindFirstChildOfClass("Humanoid")
-            
-            if humanoid and humanoid.Health > 0 and name ~= "player" and not name:find("ishiro") and name ~= "tutorial_clyde" then
-                discoveredMobs = discoveredMobs .. obj.Name .. "\n"
-
-                local isKnown = name:find("zombie") or name:find("archer") or name:find("mortar") or name:find("ghoul") or name:find("lumberjack") or name:find("cannon_goblin") or name:find("mage") or name:find("giant")
-                local isChest = getgenv().PixelBladeState.BreakObjects and (name:find("chest") or name:find("crate"))
-
-                if isKnown or isChest then
-                    local enemyRoot = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Head") or obj:FindFirstChild("PrimaryPart") or obj:FindFirstChildOfClass("Part")
-                    if enemyRoot then
-                        local dist = (hrp.Position - enemyRoot.Position).Magnitude
-                        if dist < minDistance then
-                            minDistance = dist
-                            bestTarget = enemyRoot
-                        end
-                    end
+-- Búsqueda Superficial Ultra Rápida (Evita escanear texturas, scripts, etc.)
+local function getFastEntities()
+    local entities = {}
+    for _, child in ipairs(Workspace:GetChildren()) do
+        if child:IsA("Model") then
+            table.insert(entities, child)
+        elseif child:IsA("Folder") then
+            for _, subChild in ipairs(child:GetChildren()) do
+                if subChild:IsA("Model") then
+                    table.insert(entities, subChild)
                 end
             end
         end
     end
-
-    if discoveredMobs ~= "" then
-        RadarBox.Text = "Detectados:\n" .. discoveredMobs
-    else
-        RadarBox.Text = "Buscando entidades..."
-    end
-
-    return bestTarget
+    return entities
 end
 
--- Motor principal con activación directa de herramienta/arma para golpear
+-- MOTOR 1: Radar Dinámico Lento (Cero Lag, se actualiza cada 2 segundos)
 task.spawn(function()
     while true do
         pcall(function()
-            -- Auto-Cartas: Clic directo en botones de interfaz
+            if getgenv().PixelBladeState.AutoFarm then
+                local discoveredMobs = ""
+                local entities = getFastEntities()
+                
+                for _, obj in ipairs(entities) do
+                    local name = obj.Name:lower()
+                    local hum = obj:FindFirstChildOfClass("Humanoid")
+                    if hum and hum.Health > 0 and name ~= "player" and not name:find("ishiro") and name ~= "tutorial_clyde" then
+                        discoveredMobs = discoveredMobs .. obj.Name .. "\n"
+                    end
+                end
+                
+                if discoveredMobs ~= "" then
+                    RadarBox.Text = "Detectados:\n" .. discoveredMobs
+                else
+                    RadarBox.Text = "Buscando entidades..."
+                end
+            end
+        end)
+        task.wait(2)
+    end
+end)
+
+-- MOTOR 2: Auto Cartas Medio (Se actualiza cada 1 segundo)
+task.spawn(function()
+    while true do
+        pcall(function()
             if getgenv().PixelBladeState.AutoCards then
                 for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
-                    if (gui:IsA("TextButton") or gui:IsA("ImageButton")) and gui.Visible then
-                        if (gui:IsA("TextButton") and gui.Text:upper():find("ELEGIR")) or gui.Name:lower():find("elegir") then
-                            -- Disparar evento de presionar botón nativo de Roblox
-                            for _, connection in ipairs(getconnections(gui.MouseButton1Click)) do
-                                connection:Fire()
-                            end
-                            for _, connection in ipairs(getconnections(gui.Activated)) do
-                                connection:Fire()
-                            end
-                        end
+                    if gui:IsA("TextButton") and (gui.Text:lower():find("elegir") or gui.Text:lower():find("select")) then
+                        local vim = VirtualInputManager
+                        local absPos = gui.AbsolutePosition
+                        local absSize = gui.AbsoluteSize
+                        vim:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 1)
+                        task.wait(0.05)
+                        vim:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, false, game, 1)
+                        task.wait(0.5)
                     end
                 end
             end
+        end)
+        task.wait(1)
+    end
+end)
 
-            -- Auto-Farm: Teletransporte y activación de arma
+-- MOTOR 3: Combate Rápido y Optimizado (Ataca sin tirones)
+task.spawn(function()
+    while true do
+        pcall(function()
             if getgenv().PixelBladeState.AutoFarm then
                 local char = player.Character
                 if char and char:FindFirstChild("HumanoidRootPart") then
                     local hrp = char.HumanoidRootPart
-                    local target = getBestTarget()
-                    
-                    if target then
-                        hrp.CFrame = target.CFrame * CFrame.new(0, 0, 2.5)
-                        
-                        -- Busca el arma equipada o herramienta en el personaje y actívala
-                        local tool = char:FindFirstChildOfClass("Tool")
-                        if tool then
-                            tool:Activate()
-                        else
-                            -- Si guarda el arma en el BackPack, intenta equiparla
-                            local backpack = player:FindFirstChildOfClass("Backpack")
-                            if backpack then
-                                local bpTool = backpack:FindFirstChildOfClass("Tool")
-                                if bpTool then
-                                    player.Character.Humanoid:EquipTool(bpTool)
+                    local bestTarget = nil
+                    local minDistance = math.huge
+                    local entities = getFastEntities()
+
+                    for _, obj in ipairs(entities) do
+                        if obj ~= char then
+                            local name = obj.Name:lower()
+                            local isKnown = false
+                            local isChest = false
+
+                            -- Revisa si es un enemigo conocido
+                            for _, mob in ipairs(targetMobs) do
+                                if name:find(mob) then isKnown = true; break end
+                            end
+                            
+                            -- Revisa si es cofre
+                            if getgenv().PixelBladeState.BreakObjects then
+                                for _, chest in ipairs(chestNames) do
+                                    if name:find(chest) then isChest = true; break end
+                                end
+                            end
+
+                            if isKnown or isChest then
+                                local hum = obj:FindFirstChildOfClass("Humanoid")
+                                -- Enemigo vivo o cofre sin vida
+                                if (isKnown and hum and hum.Health > 0) or (isChest) then
+                                    local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("PrimaryPart") or obj:FindFirstChildOfClass("Part")
+                                    if root then
+                                        local dist = (hrp.Position - root.Position).Magnitude
+                                        if dist < minDistance then
+                                            minDistance = dist
+                                            bestTarget = root
+                                        end
+                                    end
                                 end
                             end
                         end
+                    end
+
+                    if bestTarget then
+                        hrp.CFrame = bestTarget.CFrame * CFrame.new(0, 0, 2.5)
+                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
+                        task.wait(0.05)
+                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
                     end
                 end
             end
