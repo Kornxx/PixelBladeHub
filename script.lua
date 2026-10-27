@@ -1,5 +1,5 @@
 --[[
-    Pixel Blade Hub - Versión Final (Solo Mobs Oficiales + Cero Lag + Cuidado de Decoraciones)
+    Pixel Blade Hub - Versión Definitiva (Auto-Cartas Reparado + Ultra Ligero)
 ]]
 
 local Players = game:GetService("Players")
@@ -19,7 +19,7 @@ if not getgenv().PixelBladeState then
         AutoCards = true,
         AutoUlti = false,
         AutoContinue = true,
-        BreakObjects = true,
+        BreakObjects = false,
         AutoNextZone = false,
         AutoButtons = false,
         AutoTree = false
@@ -35,7 +35,6 @@ pcall(function()
     end
 end)
 
--- LISTA OFICIAL ESTRICTA: Solo atacará a estos nombres exactos y conocidos
 local targetMobs = {
     "zombie", "archer", "mortar", "ghoul", "lumberjack", 
     "cannon_goblin", "mage", "giant", "undead", "skeleton",
@@ -44,10 +43,10 @@ local targetMobs = {
 local chestNames = {"chest", "crate"}
 local ignoreMobs = {
     "necromancer", "tutorial_clyde", "ally", "summon", "pet", "familiar", 
-    "black_chest", "locked", "key_chest", "boss_chest", "key", "black", "decoration", "prop", "flora", "tree"
+    "black_chest", "locked", "key_chest", "boss_chest", "key", "black"
 }
 
--- INTERFAZ GRÁFICA (HUD) COMPACTA Y LIGERA
+-- INTERFAZ GRÁFICA (HUD) COMPACTA
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "PixelBladeSmartHub"
 ScreenGui.ResetOnSpawn = false
@@ -71,7 +70,7 @@ TopBar.Parent = MainFrame
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -60, 1, 0)
 Title.Position = UDim2.new(0, 5, 0, 0)
-Title.Text = "Blade Hub [Estricto]"
+Title.Text = "Blade Hub [Fixed Cards]"
 Title.TextColor3 = Color3.fromRGB(20, 20, 15)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 14
@@ -273,7 +272,7 @@ local cachedTree = nil
 local cachedButton = nil
 local isEnemyAlive = false
 
--- MOTOR 1: Escáner Estricto (Solo Mobs de la lista oficial, ignorando decoraciones y objetos fijos)
+-- MOTOR 1: Escáner de Mobs Válidos
 task.spawn(function()
     while true do
         pcall(function()
@@ -291,26 +290,16 @@ task.spawn(function()
                     
                     if obj ~= char then
                         local isIgnored = false
-                        local isKnown = false
                         local isChest = false
                         
                         if obj:IsDescendantOf(char) or name:find("player") or name:find(player.Name:lower()) then 
                             isIgnored = true 
                         end
-                        
                         for _, ig in ipairs(ignoreMobs) do
                             if name:find(ig) then isIgnored = true break end
                         end
 
                         if not isIgnored then
-                            -- Comprueba estrictamente si el nombre coincide con la lista oficial de enemigos
-                            for _, mob in ipairs(targetMobs) do 
-                                if name:find(mob) then 
-                                    isKnown = true 
-                                    break 
-                                end 
-                            end
-                            
                             if getgenv().PixelBladeState.BreakObjects then
                                 for _, chest in ipairs(chestNames) do 
                                     if name:find(chest) and not name:find("black") and not name:find("key") and not name:find("locked") then 
@@ -320,11 +309,17 @@ task.spawn(function()
                                 end
                             end
 
-                            -- Solo acepta al enemigo si está en la lista oficial de mobs o es un cofre real válido
-                            if (isKnown and hum and hum.Health > 0) or isChest then
-                                if isKnown then isEnemyAlive = true end
-                                local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("PrimaryPart") or obj:FindFirstChildOfClass("Part")
-                                if root then table.insert(newTargets, root) end
+                            if (hum and hum.Health > 0 and hum.MaxHealth > 5) or isChest then
+                                local isKnown = false
+                                for _, mob in ipairs(targetMobs) do 
+                                    if name:find(mob) then isKnown = true break end 
+                                end
+
+                                if isKnown or (hum and hum.Health > 0 and hum.MaxHealth > 5 and not isChest) then
+                                    isEnemyAlive = true
+                                    local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("PrimaryPart") or obj:FindFirstChildOfClass("Part")
+                                    if root then table.insert(newTargets, root) end
+                                end
                             end
 
                             if getgenv().PixelBladeState.AutoButtons then
@@ -360,10 +355,11 @@ task.spawn(function()
     end
 end)
 
--- MOTOR 2: UI Scanner (Auto-Seguir, Auto-Cartas)
+-- MOTOR 2: UI Scanner Ultra Optimizado (Auto-Cartas con Prioridad Absoluta + Auto-Seguir)
 task.spawn(function()
     while true do
         pcall(function()
+            -- 1. Auto-Seguir (Botón Continuar / Seguir)
             if getgenv().PixelBladeState.AutoContinue then
                 for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
                     if gui:IsA("TextButton") and gui.Visible then
@@ -372,10 +368,8 @@ task.spawn(function()
                             local absPos = gui.AbsolutePosition
                             local absSize = gui.AbsoluteSize
                             if absPos.X > 0 and absSize.X > 0 then
-                                for _, conn in ipairs(getconnections(gui.MouseButton1Click)) do conn:Fire() end
-                                for _, conn in ipairs(getconnections(gui.Activated)) do conn:Fire() end
                                 VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 1)
-                                task.wait(0.1)
+                                task.wait(0.05)
                                 VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, false, game, 1)
                                 task.wait(1)
                             end
@@ -384,44 +378,50 @@ task.spawn(function()
                 end
             end
 
+            -- 2. Auto-Cartas Inteligente (Busca botones "ELEGIR" y prioriza Llama / Furia)
             if getgenv().PixelBladeState.AutoCards then
-                local priorityCard = nil
-                local anyCard = nil
+                local priorityButton = nil
+                local anyButton = nil
                 
                 for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
                     if gui:IsA("TextButton") and gui.Visible then
-                        local parentModel = gui.Parent
-                        local cardText = ""
-                        for _, sub in ipairs(parentModel:GetDescendants()) do
-                            if sub:IsA("TextLabel") or sub:IsA("TextBox") then
-                                cardText = cardText .. " " .. sub.Text:lower()
+                        local btnText = gui.Text:lower()
+                        if btnText:find("elegir") or btnText:find("choose") or btnText:find("select") then
+                            local parentModel = gui.Parent
+                            local cardContext = ""
+                            
+                            -- Inspecciona todo el contenedor de la carta para leer su título
+                            for _, sub in ipairs(parentModel:GetDescendants()) do
+                                if sub:IsA("TextLabel") or sub:IsA("TextBox") then
+                                    cardContext = cardContext .. " " .. sub.Text:lower()
+                                end
                             end
-                        end
-                        cardText = cardText .. " " .. gui.Text:lower()
+                            cardContext = cardContext .. " " .. btnText
 
-                        if cardText:find("llama") or cardText:find("flame") or cardText:find("espiritus") or cardText:find("furia") or cardText:find("spirit") then
-                            priorityCard = gui
-                        else
-                            anyCard = gui
+                            -- Detecta prioridad absoluta (Llama / Espíritus)
+                            if cardContext:find("llama") or cardContext:find("flame") or cardContext:find("espiritus") or cardContext:find("furia") or cardContext:find("spirit") then
+                                priorityButton = gui
+                            else
+                                anyButton = gui
+                            end
                         end
                     end
                 end
-                
-                local targetCard = priorityCard or anyCard
+
+                local targetCard = priorityButton or anyButton
                 if targetCard then
                     local absPos = targetCard.AbsolutePosition
                     local absSize = targetCard.AbsoluteSize
                     if absPos.X > 0 and absSize.X > 0 then
-                        for _, conn in ipairs(getconnections(targetCard.MouseButton1Click)) do conn:Fire() end
-                        for _, conn in ipairs(getconnections(targetCard.Activated)) do conn:Fire() end
                         VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 1)
-                        task.wait(0.1)
+                        task.wait(0.05)
                         VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, false, game, 1)
+                        task.wait(1.5) -- Pausa para permitir que la animación de la carta cierre limpia
                     end
                 end
             end
         end)
-        task.wait(1)
+        task.wait(0.3) -- Frecuencia rápida para que agarre el pergamino al instante
     end
 end)
 
