@@ -1,5 +1,5 @@
 --[[
-    Pixel Blade Hub - Versión Definitiva (Limpieza Obligatoria + Botón con E Mantenida)
+    Pixel Blade Hub - Versión Definitiva Raids (Árbol de Oleadas + Cartas Reparadas + Anti-Vacío)
 ]]
 
 local Players = game:GetService("Players")
@@ -18,7 +18,7 @@ if not getgenv().PixelBladeState then
         AutoCards = true,
         BreakObjects = true,
         AutoUlti = false,
-        AutoNextZone = false,
+        AutoNextZone = true,
         AutoButtons = true
     }
 end
@@ -65,7 +65,7 @@ TopBar.Parent = MainFrame
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -60, 1, 0)
 Title.Position = UDim2.new(0, 5, 0, 0)
-Title.Text = "Blade Hub [Smart Clean]"
+Title.Text = "Blade Hub [Raids & Cards]"
 Title.TextColor3 = Color3.fromRGB(20, 20, 15)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 13
@@ -103,7 +103,7 @@ ContentContainer.Parent = MainFrame
 local RadarBox = Instance.new("TextBox")
 RadarBox.Size = UDim2.new(1, -20, 0, 60)
 RadarBox.Position = UDim2.new(0, 10, 0, 35)
-RadarBox.Text = "Radar Inteligente..."
+RadarBox.Text = "Radar Raids Activo..."
 RadarBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 RadarBox.Font = Enum.Font.Code
 RadarBox.TextSize = 10
@@ -252,7 +252,7 @@ local cachedPortal = nil
 local cachedButton = nil
 local isEnemyAlive = false
 
--- MOTOR 1: Radar Inteligente que separa estrictamente Mobs y Botones
+-- MOTOR 1: Radar con soporte para Árbol de Raids y Puertas de Oleadas
 task.spawn(function()
     while true do
         pcall(function()
@@ -282,10 +282,8 @@ task.spawn(function()
                         end
 
                         if not isIgnored then
-                            -- Detectar Mobs y Jefes
                             for _, mob in ipairs(targetMobs) do if name:find(mob) then isKnown = true break end end
                             
-                            -- Cofres normales seguros
                             if getgenv().PixelBladeState.BreakObjects then
                                 for _, chest in ipairs(chestNames) do 
                                     if name:find(chest) and not name:find("black") and not name:find("key") and not name:find("locked") then 
@@ -301,7 +299,7 @@ task.spawn(function()
                                 if root then table.insert(newTargets, root) end
                             end
 
-                            -- Guardar Botones por separado para activarlos SOLO cuando no haya enemigos
+                            -- Botones de jefes
                             if getgenv().PixelBladeState.AutoButtons then
                                 if (name:find("button") or name:find("switch") or name:find("lever") or name:find("mechanism")) and not name:find("chest") and not name:find("black") then
                                     if not buttonFound then
@@ -312,8 +310,9 @@ task.spawn(function()
                         end
                     end
 
+                    -- Detección de portales, puertas y el Árbol especial de las Raids (oleadas)
                     if getgenv().PixelBladeState.AutoNextZone then
-                        if name:find("exit_door") or name:find("portal") or name:find("door") or name:find("next") then
+                        if name:find("exit_door") or name:find("portal") or name:find("door") or name:find("next") or name:find("tree") or name:find("arbol") or name:find("wave") then
                             if not portalFound then
                                 portalFound = obj:IsA("Part") and obj or obj:FindFirstChildOfClass("Part") or obj:FindFirstChild("PrimaryPart")
                             end
@@ -330,24 +329,32 @@ task.spawn(function()
     end
 end)
 
--- MOTOR 2: Auto Cartas y Auto Ulti
+-- MOTOR 2: Auto Cartas Reparado (Escaneo total de cualquier opción en pantalla y selección aleatoria)
 task.spawn(function()
     while true do
         pcall(function()
             if getgenv().PixelBladeState.AutoCards then
+                local foundCards = {}
                 for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
                     if gui:IsA("TextButton") and gui.Visible then
-                        if gui.Text:upper():find("ELEGIR") or gui.Name:lower():find("elegir") then
-                            local absPos = gui.AbsolutePosition
-                            local absSize = gui.AbsoluteSize
-                            if absPos.X > 0 and absSize.X > 0 then
-                                for _, conn in ipairs(getconnections(gui.MouseButton1Click)) do conn:Fire() end
-                                for _, conn in ipairs(getconnections(gui.Activated)) do conn:Fire() end
-                                VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 1)
-                                task.wait(0.05)
-                                VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, false, game, 1)
-                            end
+                        local t = gui.Text:upper()
+                        if t:find("ELEGIR") or t:find("SELECT") or gui.Name:lower():find("elegir") or gui.Name:lower():find("card") then
+                            table.insert(foundCards, gui)
                         end
+                    end
+                end
+                
+                -- Si aparecen opciones de cartas, elige una de forma aleatoria para avanzar fluido
+                if #foundCards > 0 then
+                    local randomCard = foundCards[math.random(1, #foundCards)]
+                    local absPos = randomCard.AbsolutePosition
+                    local absSize = randomCard.AbsoluteSize
+                    if absPos.X > 0 and absSize.X > 0 then
+                        for _, conn in ipairs(getconnections(randomCard.MouseButton1Click)) do conn:Fire() end
+                        for _, conn in ipairs(getconnections(randomCard.Activated)) do conn:Fire() end
+                        VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 1)
+                        task.wait(0.05)
+                        VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, false, game, 1)
                     end
                 end
             end
@@ -368,7 +375,7 @@ task.spawn(function()
     end
 end)
 
--- MOTOR 3: Combate y Activación Segura del Botón (Solo si la etapa está limpia)
+-- MOTOR 3: Combate Anti-Vacío, Limpieza de Oleadas y Activación de Botones
 task.spawn(function()
     while true do
         pcall(function()
@@ -376,7 +383,6 @@ task.spawn(function()
             if char and char:FindFirstChild("HumanoidRootPart") then
                 local hrp = char.HumanoidRootPart
                 
-                -- SI HAY ENEMIGOS: Farmea y limpia primero
                 if getgenv().PixelBladeState.AutoFarm and isEnemyAlive then
                     local bestTarget = nil
                     local minDistance = math.huge
@@ -398,14 +404,12 @@ task.spawn(function()
                         VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
                     end
                 
-                -- SI TODO ESTÁ DESPEJADO: Avanza a puertas o interactúa manteniendo presionado el botón con 'E'
                 elseif not isEnemyAlive then
                     if getgenv().PixelBladeState.AutoNextZone and cachedPortal then
                         hrp.CFrame = cachedPortal.CFrame * CFrame.new(0, 2, 0)
                     elseif getgenv().PixelBladeState.AutoButtons and cachedButton then
                         hrp.CFrame = cachedButton.CFrame * CFrame.new(0, 2, 2)
                         task.wait(0.2)
-                        -- Simula mantener presionada la tecla E durante 1 segundo para activar el botón
                         VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
                         task.wait(1.0)
                         VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
