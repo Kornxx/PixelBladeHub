@@ -1,5 +1,5 @@
 --[[
-    Pixel Blade Hub - Versión con Minimizar y Cerrar
+    Pixel Blade Hub - Auto Farm (Con Lumberjack + Minimizar)
 ]]
 
 local Players = game:GetService("Players")
@@ -48,7 +48,7 @@ Title.BackgroundTransparency = 1
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = TopBar
 
--- Botón para Minimizar / Contraer a cuadrito pequeño (- / +)
+-- Botón para Minimizar / Contraer (- / +)
 local isMinimized = false
 local MinimizeBtn = Instance.new("TextButton")
 MinimizeBtn.Size = UDim2.new(0, 25, 0, 20)
@@ -73,12 +73,11 @@ CloseBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
 CloseBtn.BorderSizePixel = 0
 CloseBtn.Parent = TopBar
 
--- Contenedor de los elementos internos para ocultarlos al minimizar
+-- Contenedor de elementos para ocultar al minimizar
 local ContentContainer = Instance.new("Folder")
 ContentContainer.Name = "ContentContainer"
 ContentContainer.Parent = MainFrame
 
--- Caja del Radar de Mobs
 local RadarBox = Instance.new("TextBox")
 RadarBox.Size = UDim2.new(1, -20, 0, 70)
 RadarBox.Position = UDim2.new(0, 10, 0, 38)
@@ -144,7 +143,6 @@ ChestBtn.MouseButton1Click:Connect(function()
     ChestBtn.BackgroundColor3 = getgenv().PixelBladeState.BreakObjects and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
 end)
 
--- Botón para cerrar completo dentro del menú
 local ExitBtn = Instance.new("TextButton")
 ExitBtn.Size = UDim2.new(1, -20, 0, 25)
 ExitBtn.Position = UDim2.new(0, 10, 0, 225)
@@ -156,7 +154,6 @@ ExitBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
 ExitBtn.BorderSizePixel = 0
 ExitBtn.Parent = ContentContainer
 
--- Lógica del botón Minimizar (-)
 MinimizeBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
     if isMinimized then
@@ -174,7 +171,6 @@ MinimizeBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Lógica de cierre total (X y botón inferior)
 CloseBtn.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
@@ -183,7 +179,7 @@ ExitBtn.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
 
--- Buscador de enemigos y radar
+-- Buscador optimizado que ya incluye al lumberjack, zombis, arqueros, mortars y cofres
 local function getBestTarget()
     local char = player.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
@@ -201,7 +197,8 @@ local function getBestTarget()
             if humanoid and humanoid.Health > 0 and name ~= "player" and not name:find("ishiro") and name ~= "tutorial_clyde" then
                 discoveredMobs = discoveredMobs .. obj.Name .. "\n"
 
-                local isKnown = name:find("zombie") or name:find("archer") or name:find("mortar") or name:find("ghoul")
+                -- Lista ampliada con el nuevo 'lumberjack'
+                local isKnown = name:find("zombie") or name:find("archer") or name:find("mortar") or name:find("ghoul") or name:find("lumberjack")
                 local isChest = getgenv().PixelBladeState.BreakObjects and (name:find("chest") or name:find("crate"))
 
                 if isKnown or isChest then
@@ -227,7 +224,7 @@ local function getBestTarget()
     return bestTarget
 end
 
--- Motor principal (Combate + Auto Cartas)
+-- Motor principal de combate y selección de cartas
 task.spawn(function()
     while true do
         pcall(function()
@@ -253,3 +250,13 @@ task.spawn(function()
                     
                     if target then
                         hrp.CFrame = target.CFrame * CFrame.new(0, 0, 2.5)
+                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
+                        task.wait(0.05)
+                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+                    end
+                end
+            end
+        end)
+        task.wait(0.2)
+    end
+end)
