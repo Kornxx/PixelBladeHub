@@ -1,5 +1,5 @@
 --[[
-    Pixel Blade Hub - Versión OPTIMIZADA (Cero Lag)
+    Pixel Blade Hub - Ataque Clásico (Cero Lag) + Auto-Ulti
 ]]
 
 local Players = game:GetService("Players")
@@ -15,11 +15,14 @@ end
 getgenv().PixelBladeState = {
     AutoFarm = false,
     AutoCards = true,
-    BreakObjects = true
+    BreakObjects = true,
+    AutoUlti = false,
+    AutoNextZone = false
 }
 
--- Listas de objetivos guardadas en memoria rápida
-local targetMobs = {"zombie", "archer", "mortar", "ghoul", "lumberjack", "cannon_goblin", "mage", "giant"}
+local targetMobs = {
+    "zombie", "archer", "mortar", "ghoul", "lumberjack", "cannon_goblin", "mage", "giant"
+}
 local chestNames = {"chest", "crate"}
 
 local ScreenGui = Instance.new("ScreenGui")
@@ -27,8 +30,8 @@ ScreenGui.Name = "PixelBladeSmartHub"
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 240, 0, 270)
-MainFrame.Position = UDim2.new(0.5, -120, 0.5, -135)
+MainFrame.Size = UDim2.new(0, 240, 0, 330)
+MainFrame.Position = UDim2.new(0.5, -120, 0.5, -165)
 MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 35)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -44,10 +47,10 @@ TopBar.Parent = MainFrame
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -60, 1, 0)
 Title.Position = UDim2.new(0, 5, 0, 0)
-Title.Text = "Blade Hub [Optimized]"
+Title.Text = "Blade Hub [Ultra]"
 Title.TextColor3 = Color3.fromRGB(20, 20, 15)
 Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 12
+Title.TextSize = 13
 Title.BackgroundTransparency = 1
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = TopBar
@@ -82,7 +85,7 @@ ContentContainer.Parent = MainFrame
 local RadarBox = Instance.new("TextBox")
 RadarBox.Size = UDim2.new(1, -20, 0, 70)
 RadarBox.Position = UDim2.new(0, 10, 0, 38)
-RadarBox.Text = "Radar en espera..."
+RadarBox.Text = "Radar Activo..."
 RadarBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 RadarBox.Font = Enum.Font.Code
 RadarBox.TextSize = 10
@@ -113,7 +116,7 @@ end)
 local CardBtn = Instance.new("TextButton")
 CardBtn.Size = UDim2.new(1, -20, 0, 30)
 CardBtn.Position = UDim2.new(0, 10, 0, 150)
-CardBtn.Text = "Auto-Cartas (Ventajas): ON"
+CardBtn.Text = "Auto-Cartas: ON"
 CardBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
 CardBtn.Font = Enum.Font.SourceSansBold
 CardBtn.TextSize = 12
@@ -123,7 +126,7 @@ CardBtn.Parent = ContentContainer
 
 CardBtn.MouseButton1Click:Connect(function()
     getgenv().PixelBladeState.AutoCards = not getgenv().PixelBladeState.AutoCards
-    CardBtn.Text = "Auto-Cartas (Ventajas): " .. (getgenv().PixelBladeState.AutoCards and "ON" or "OFF")
+    CardBtn.Text = "Auto-Cartas: " .. (getgenv().PixelBladeState.AutoCards and "ON" or "OFF")
     CardBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoCards and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
 end)
 
@@ -144,9 +147,45 @@ ChestBtn.MouseButton1Click:Connect(function()
     ChestBtn.BackgroundColor3 = getgenv().PixelBladeState.BreakObjects and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
 end)
 
+-- NUEVO BOTÓN: Auto-Ulti / Habilidades
+local UltiBtn = Instance.new("TextButton")
+UltiBtn.Size = UDim2.new(1, -20, 0, 30)
+UltiBtn.Position = UDim2.new(0, 10, 0, 220)
+UltiBtn.Text = "Auto-Habilidades (Ulti): OFF"
+UltiBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
+UltiBtn.Font = Enum.Font.SourceSansBold
+UltiBtn.TextSize = 12
+UltiBtn.BackgroundColor3 = Color3.fromRGB(245, 245, 220)
+UltiBtn.BorderSizePixel = 0
+UltiBtn.Parent = ContentContainer
+
+UltiBtn.MouseButton1Click:Connect(function()
+    getgenv().PixelBladeState.AutoUlti = not getgenv().PixelBladeState.AutoUlti
+    UltiBtn.Text = "Auto-Habilidades (Ulti): " .. (getgenv().PixelBladeState.AutoUlti and "ON" or "OFF")
+    UltiBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoUlti and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
+end)
+
+-- BOTÓN: Auto-Avanzar Zona
+local ZoneBtn = Instance.new("TextButton")
+ZoneBtn.Size = UDim2.new(1, -20, 0, 30)
+ZoneBtn.Position = UDim2.new(0, 10, 0, 255)
+ZoneBtn.Text = "Auto-Avanzar Zona: OFF"
+ZoneBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
+ZoneBtn.Font = Enum.Font.SourceSansBold
+ZoneBtn.TextSize = 12
+ZoneBtn.BackgroundColor3 = Color3.fromRGB(245, 245, 220)
+ZoneBtn.BorderSizePixel = 0
+ZoneBtn.Parent = ContentContainer
+
+ZoneBtn.MouseButton1Click:Connect(function()
+    getgenv().PixelBladeState.AutoNextZone = not getgenv().PixelBladeState.AutoNextZone
+    ZoneBtn.Text = "Auto-Avanzar Zona: " .. (getgenv().PixelBladeState.AutoNextZone and "ON" or "OFF")
+    ZoneBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoNextZone and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
+end)
+
 local ExitBtn = Instance.new("TextButton")
 ExitBtn.Size = UDim2.new(1, -20, 0, 25)
-ExitBtn.Position = UDim2.new(0, 10, 0, 225)
+ExitBtn.Position = UDim2.new(0, 10, 0, 290)
 ExitBtn.Text = "Cerrar Hub por completo"
 ExitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 ExitBtn.Font = Enum.Font.SourceSansBold
@@ -164,7 +203,7 @@ MinimizeBtn.MouseButton1Click:Connect(function()
             if obj:IsA("GuiObject") then obj.Visible = false end
         end
     else
-        MainFrame.Size = UDim2.new(0, 240, 0, 270)
+        MainFrame.Size = UDim2.new(0, 240, 0, 330)
         MinimizeBtn.Text = "-"
         for _, obj in ipairs(ContentContainer:GetChildren()) do
             if obj:IsA("GuiObject") then obj.Visible = true end
@@ -172,133 +211,140 @@ MinimizeBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-CloseBtn.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
-end)
+CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+ExitBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
-ExitBtn.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
-end)
+-- Caché global para evitar lag
+local cachedTargets = {}
+local cachedPortal = nil
+local isEnemyAlive = false
 
--- Búsqueda Superficial Ultra Rápida (Evita escanear texturas, scripts, etc.)
-local function getFastEntities()
-    local entities = {}
-    for _, child in ipairs(Workspace:GetChildren()) do
-        if child:IsA("Model") then
-            table.insert(entities, child)
-        elseif child:IsA("Folder") then
-            for _, subChild in ipairs(child:GetChildren()) do
-                if subChild:IsA("Model") then
-                    table.insert(entities, subChild)
-                end
-            end
-        end
-    end
-    return entities
-end
-
--- MOTOR 1: Radar Dinámico Lento (Cero Lag, se actualiza cada 2 segundos)
+-- MOTOR 1: Radar y Escáner Profundo (Solo 1 vez por segundo = Cero Lag)
 task.spawn(function()
     while true do
         pcall(function()
-            if getgenv().PixelBladeState.AutoFarm then
-                local discoveredMobs = ""
-                local entities = getFastEntities()
-                
-                for _, obj in ipairs(entities) do
+            local newTargets = {}
+            local portalFound = nil
+            local detected = ""
+            local char = player.Character
+            isEnemyAlive = false
+
+            for _, obj in ipairs(Workspace:GetDescendants()) do
+                if obj:IsA("Model") and obj ~= char then
                     local name = obj.Name:lower()
                     local hum = obj:FindFirstChildOfClass("Humanoid")
-                    if hum and hum.Health > 0 and name ~= "player" and not name:find("ishiro") and name ~= "tutorial_clyde" then
-                        discoveredMobs = discoveredMobs .. obj.Name .. "\n"
+                    
+                    local isKnown = false
+                    local isChest = false
+                    
+                    for _, mob in ipairs(targetMobs) do if name:find(mob) then isKnown = true break end end
+                    if getgenv().PixelBladeState.BreakObjects then
+                        for _, chest in ipairs(chestNames) do if name:find(chest) then isChest = true break end end
                     end
-                end
-                
-                if discoveredMobs ~= "" then
-                    RadarBox.Text = "Detectados:\n" .. discoveredMobs
-                else
-                    RadarBox.Text = "Buscando entidades..."
+
+                    -- Guardar en caché si es objetivo válido (Enemigo vivo o Cofre)
+                    if (isKnown and hum and hum.Health > 0) or isChest then
+                        if isKnown then isEnemyAlive = true end
+                        local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("PrimaryPart") or obj:FindFirstChildOfClass("Part")
+                        if root then
+                            table.insert(newTargets, root)
+                        end
+                    end
+
+                    -- Radar de nuevos mobs
+                    if hum and hum.Health > 0 and name ~= "player" and not name:find("ishiro") and name ~= "tutorial_clyde" then
+                        if not isKnown then detected = detected .. "[Mob] " .. obj.Name .. "\n" end
+                    end
+
+                    -- Buscar Portales
+                    if getgenv().PixelBladeState.AutoNextZone then
+                        if name:find("portal") or name:find("door") or name:find("zone") or name:find("gate") or name:find("teleport") or name:find("next") then
+                            detected = detected .. "[Portal] " .. obj.Name .. "\n"
+                            if not portalFound then
+                                portalFound = obj:FindFirstChildOfClass("Part") or (obj:IsA("Part") and obj)
+                            end
+                        end
+                    end
                 end
             end
-        end)
-        task.wait(2)
-    end
-end)
-
--- MOTOR 2: Auto Cartas Medio (Se actualiza cada 1 segundo)
-task.spawn(function()
-    while true do
-        pcall(function()
-            if getgenv().PixelBladeState.AutoCards then
-                for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
-                    if gui:IsA("TextButton") and (gui.Text:lower():find("elegir") or gui.Text:lower():find("select")) then
-                        local vim = VirtualInputManager
-                        local absPos = gui.AbsolutePosition
-                        local absSize = gui.AbsoluteSize
-                        vim:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 1)
-                        task.wait(0.05)
-                        vim:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, false, game, 1)
-                        task.wait(0.5)
-                    end
-                end
+            
+            cachedTargets = newTargets
+            cachedPortal = portalFound
+            
+            if detected ~= "" then
+                RadarBox.Text = "Nuevos Descubiertos:\n" .. detected
+            else
+                RadarBox.Text = "Radar en espera... (Todo despejado)"
             end
         end)
         task.wait(1)
     end
 end)
 
--- MOTOR 3: Combate Rápido y Optimizado (Ataca sin tirones)
+-- MOTOR 2: Auto Cartas y Auto Ulti
 task.spawn(function()
     while true do
         pcall(function()
-            if getgenv().PixelBladeState.AutoFarm then
-                local char = player.Character
-                if char and char:FindFirstChild("HumanoidRootPart") then
-                    local hrp = char.HumanoidRootPart
+            -- Auto Cartas
+            if getgenv().PixelBladeState.AutoCards then
+                for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
+                    if gui:IsA("TextButton") and (gui.Text:lower():find("elegir") or gui.Text:lower():find("select")) then
+                        VirtualInputManager:SendMouseButtonEvent(gui.AbsolutePosition.X + gui.AbsoluteSize.X/2, gui.AbsolutePosition.Y + gui.AbsoluteSize.Y/2, 0, true, game, 1)
+                        task.wait(0.05)
+                        VirtualInputManager:SendMouseButtonEvent(gui.AbsolutePosition.X + gui.AbsolutePosition.Y + gui.AbsoluteSize.Y/2, 0, false, game, 1)
+                    end
+                end
+            end
+            -- Auto Ulti/Skills (Dispara las teclas Q, E, R automáticamente)
+            if getgenv().PixelBladeState.AutoUlti and getgenv().PixelBladeState.AutoFarm and isEnemyAlive then
+                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
+                task.wait(0.05)
+                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game)
+                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                task.wait(0.05)
+                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
+                task.wait(0.05)
+                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
+            end
+        end)
+        task.wait(0.5)
+    end
+end)
+
+-- MOTOR 3: Combate Clásico (Rápido y usando la caché sin lag)
+task.spawn(function()
+    while true do
+        pcall(function()
+            local char = player.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                local hrp = char.HumanoidRootPart
+                
+                if getgenv().PixelBladeState.AutoFarm then
                     local bestTarget = nil
                     local minDistance = math.huge
-                    local entities = getFastEntities()
-
-                    for _, obj in ipairs(entities) do
-                        if obj ~= char then
-                            local name = obj.Name:lower()
-                            local isKnown = false
-                            local isChest = false
-
-                            -- Revisa si es un enemigo conocido
-                            for _, mob in ipairs(targetMobs) do
-                                if name:find(mob) then isKnown = true; break end
-                            end
-                            
-                            -- Revisa si es cofre
-                            if getgenv().PixelBladeState.BreakObjects then
-                                for _, chest in ipairs(chestNames) do
-                                    if name:find(chest) then isChest = true; break end
-                                end
-                            end
-
-                            if isKnown or isChest then
-                                local hum = obj:FindFirstChildOfClass("Humanoid")
-                                -- Enemigo vivo o cofre sin vida
-                                if (isKnown and hum and hum.Health > 0) or (isChest) then
-                                    local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("PrimaryPart") or obj:FindFirstChildOfClass("Part")
-                                    if root then
-                                        local dist = (hrp.Position - root.Position).Magnitude
-                                        if dist < minDistance then
-                                            minDistance = dist
-                                            bestTarget = root
-                                        end
-                                    end
-                                end
+                    
+                    for _, root in ipairs(cachedTargets) do
+                        if root and root.Parent then
+                            local dist = (hrp.Position - root.Position).Magnitude
+                            if dist < minDistance then
+                                minDistance = dist
+                                bestTarget = root
                             end
                         end
                     end
-
+                    
                     if bestTarget then
                         hrp.CFrame = bestTarget.CFrame * CFrame.new(0, 0, 2.5)
                         VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
                         task.wait(0.05)
                         VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
                     end
+                end
+
+                -- Auto Avanzar Zona si ya no hay enemigos
+                if getgenv().PixelBladeState.AutoNextZone and not isEnemyAlive and cachedPortal then
+                    hrp.CFrame = cachedPortal.CFrame
                 end
             end
         end)
