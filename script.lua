@@ -1,5 +1,5 @@
 --[[
-    Pixel Blade Hub - Versión Final Definitiva (AFK & Clean)
+    Pixel Blade Hub - Versión Ultra Fluida (Anti-Vacío + Combate Rápido + Jefes)
 ]]
 
 local Players = game:GetService("Players")
@@ -18,20 +18,29 @@ if not getgenv().PixelBladeState then
         AutoCards = true,
         BreakObjects = true,
         AutoUlti = false,
-        AutoNextZone = false
+        AutoNextZone = false,
+        AutoButtons = true
     }
 end
 
+pcall(function()
+    if queue_on_teleport then
+        queue_on_teleport([[
+            task.wait(3)
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/Kornxx/PixelBladeHub/refs/heads/main/script.lua?t=" .. tostring(tick())))()
+        ]])
+    end
+end)
+
 local targetMobs = {
     "zombie", "archer", "mortar", "ghoul", "lumberjack", 
-    "cannon_goblin", "mage", "giant", "undead", "skeleton"
+    "cannon_goblin", "mage", "giant", "undead", "skeleton",
+    "kingslayer", "goblintype1", "goblintype2"
 }
 local chestNames = {"chest", "crate"}
-
--- Lista negra limpia enfocada solo en el necromancer y cofres especiales
 local ignoreMobs = {
     "necromancer", "tutorial_clyde", "ally", "summon", "pet", "familiar", 
-    "black_chest", "locked", "key_chest", "boss_chest"
+    "black_chest", "locked", "key_chest", "boss_chest", "key", "black"
 }
 
 local ScreenGui = Instance.new("ScreenGui")
@@ -39,8 +48,8 @@ ScreenGui.Name = "PixelBladeSmartHub"
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 240, 0, 330)
-MainFrame.Position = UDim2.new(0.5, -120, 0.5, -165)
+MainFrame.Size = UDim2.new(0, 240, 0, 365)
+MainFrame.Position = UDim2.new(0.5, -120, 0.5, -182)
 MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 35)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = false
@@ -56,7 +65,7 @@ TopBar.Parent = MainFrame
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -60, 1, 0)
 Title.Position = UDim2.new(0, 5, 0, 0)
-Title.Text = "Blade Hub [Final]"
+Title.Text = "Blade Hub [Ultra Fluid]"
 Title.TextColor3 = Color3.fromRGB(20, 20, 15)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 13
@@ -92,9 +101,9 @@ ContentContainer.Name = "ContentContainer"
 ContentContainer.Parent = MainFrame
 
 local RadarBox = Instance.new("TextBox")
-RadarBox.Size = UDim2.new(1, -20, 0, 70)
-RadarBox.Position = UDim2.new(0, 10, 0, 38)
-RadarBox.Text = "Radar Activo..."
+RadarBox.Size = UDim2.new(1, -20, 0, 60)
+RadarBox.Position = UDim2.new(0, 10, 0, 35)
+RadarBox.Text = "Radar Optimizado..."
 RadarBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 RadarBox.Font = Enum.Font.Code
 RadarBox.TextSize = 10
@@ -106,8 +115,8 @@ RadarBox.BorderSizePixel = 0
 RadarBox.Parent = ContentContainer
 
 local ToggleBtn = Instance.new("TextButton")
-ToggleBtn.Size = UDim2.new(1, -20, 0, 30)
-ToggleBtn.Position = UDim2.new(0, 10, 0, 115)
+ToggleBtn.Size = UDim2.new(1, -20, 0, 28)
+ToggleBtn.Position = UDim2.new(0, 10, 0, 100)
 ToggleBtn.Text = "Auto-Farm Mobs: " .. (getgenv().PixelBladeState.AutoFarm and "ON" or "OFF")
 ToggleBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
 ToggleBtn.Font = Enum.Font.SourceSansBold
@@ -123,8 +132,8 @@ ToggleBtn.MouseButton1Click:Connect(function()
 end)
 
 local CardBtn = Instance.new("TextButton")
-CardBtn.Size = UDim2.new(1, -20, 0, 30)
-CardBtn.Position = UDim2.new(0, 10, 0, 150)
+CardBtn.Size = UDim2.new(1, -20, 0, 28)
+CardBtn.Position = UDim2.new(0, 10, 0, 132)
 CardBtn.Text = "Auto-Cartas: " .. (getgenv().PixelBladeState.AutoCards and "ON" or "OFF")
 CardBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
 CardBtn.Font = Enum.Font.SourceSansBold
@@ -140,8 +149,8 @@ CardBtn.MouseButton1Click:Connect(function()
 end)
 
 local ChestBtn = Instance.new("TextButton")
-ChestBtn.Size = UDim2.new(1, -20, 0, 30)
-ChestBtn.Position = UDim2.new(0, 10, 0, 185)
+ChestBtn.Size = UDim2.new(1, -20, 0, 28)
+ChestBtn.Position = UDim2.new(0, 10, 0, 164)
 ChestBtn.Text = "Romper Cofres: " .. (getgenv().PixelBladeState.BreakObjects and "ON" or "OFF")
 ChestBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
 ChestBtn.Font = Enum.Font.SourceSansBold
@@ -157,8 +166,8 @@ ChestBtn.MouseButton1Click:Connect(function()
 end)
 
 local UltiBtn = Instance.new("TextButton")
-UltiBtn.Size = UDim2.new(1, -20, 0, 30)
-UltiBtn.Position = UDim2.new(0, 10, 0, 220)
+UltiBtn.Size = UDim2.new(1, -20, 0, 28)
+UltiBtn.Position = UDim2.new(0, 10, 0, 196)
 UltiBtn.Text = "Auto-Habilidades (Ulti): " .. (getgenv().PixelBladeState.AutoUlti and "ON" or "OFF")
 UltiBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
 UltiBtn.Font = Enum.Font.SourceSansBold
@@ -174,8 +183,8 @@ UltiBtn.MouseButton1Click:Connect(function()
 end)
 
 local ZoneBtn = Instance.new("TextButton")
-ZoneBtn.Size = UDim2.new(1, -20, 0, 30)
-ZoneBtn.Position = UDim2.new(0, 10, 0, 255)
+ZoneBtn.Size = UDim2.new(1, -20, 0, 28)
+ZoneBtn.Position = UDim2.new(0, 10, 0, 228)
 ZoneBtn.Text = "Auto-Avanzar Zona: " .. (getgenv().PixelBladeState.AutoNextZone and "ON" or "OFF")
 ZoneBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
 ZoneBtn.Font = Enum.Font.SourceSansBold
@@ -190,14 +199,31 @@ ZoneBtn.MouseButton1Click:Connect(function()
     ZoneBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoNextZone and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
 end)
 
+local ButtonBtn = Instance.new("TextButton")
+ButtonBtn.Size = UDim2.new(1, -20, 0, 28)
+ButtonBtn.Position = UDim2.new(0, 10, 0, 260)
+ButtonBtn.Text = "Auto-Botones (Jefes): " .. (getgenv().PixelBladeState.AutoButtons and "ON" or "OFF")
+ButtonBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
+ButtonBtn.Font = Enum.Font.SourceSansBold
+ButtonBtn.TextSize = 12
+ButtonBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoButtons and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
+ButtonBtn.BorderSizePixel = 0
+ButtonBtn.Parent = ContentContainer
+
+ButtonBtn.MouseButton1Click:Connect(function()
+    getgenv().PixelBladeState.AutoButtons = not getgenv().PixelBladeState.AutoButtons
+    ButtonBtn.Text = "Auto-Botones (Jefes): " .. (getgenv().PixelBladeState.AutoButtons and "ON" or "OFF")
+    ButtonBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoButtons and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
+end)
+
 local ExitBtn = Instance.new("TextButton")
-ExitBtn.Size = UDim2.new(1, -20, 0, 25)
-ExitBtn.Position = UDim2.new(0, 10, 0, 290)
+ExitBtn.Size = UDim2.new(1, -20, 0, 24)
+ExitBtn.Position = UDim2.new(0, 10, 0, 292)
 ExitBtn.Text = "Cerrar Hub por completo"
 ExitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 ExitBtn.Font = Enum.Font.SourceSansBold
 ExitBtn.TextSize = 11
-ExitBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+ExitBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
 ExitBtn.BorderSizePixel = 0
 ExitBtn.Parent = ContentContainer
 
@@ -210,7 +236,7 @@ MinimizeBtn.MouseButton1Click:Connect(function()
             if obj:IsA("GuiObject") then obj.Visible = false end
         end
     else
-        MainFrame.Size = UDim2.new(0, 240, 0, 330)
+        MainFrame.Size = UDim2.new(0, 240, 0, 335)
         MinimizeBtn.Text = "-"
         for _, obj in ipairs(ContentContainer:GetChildren()) do
             if obj:IsA("GuiObject") then obj.Visible = true end
@@ -225,7 +251,7 @@ local cachedTargets = {}
 local cachedPortal = nil
 local isEnemyAlive = false
 
--- MOTOR 1: Radar y Escáner optimizado
+-- MOTOR 1: Radar ultrarrápido y seguro
 task.spawn(function()
     while true do
         pcall(function()
@@ -271,15 +297,17 @@ task.spawn(function()
                                 if root then table.insert(newTargets, root) end
                             end
 
-                            if hum and hum.Health > 0 and not isKnown and not isIgnored then
-                                detected = detected .. "[Mob] " .. obj.Name .. "\n"
+                            if getgenv().PixelBladeState.AutoButtons then
+                                if (name:find("button") or name:find("switch") or name:find("lever") or name:find("mechanism")) and not name:find("chest") and not name:find("black") then
+                                    local root = obj:IsA("Part") and obj or obj:FindFirstChildOfClass("Part") or obj:FindFirstChild("PrimaryPart")
+                                    if root then table.insert(newTargets, root) end
+                                end
                             end
                         end
                     end
 
                     if getgenv().PixelBladeState.AutoNextZone then
                         if name:find("exit_door") or name:find("portal") or name:find("door") or name:find("next") then
-                            detected = detected .. "[Portal] " .. obj.Name .. "\n"
                             if not portalFound then
                                 portalFound = obj:IsA("Part") and obj or obj:FindFirstChildOfClass("Part") or obj:FindFirstChild("PrimaryPart")
                             end
@@ -290,18 +318,12 @@ task.spawn(function()
             
             cachedTargets = newTargets
             cachedPortal = portalFound
-            
-            if detected ~= "" then
-                RadarBox.Text = "Nuevos Descubiertos:\n" .. detected
-            else
-                RadarBox.Text = "Radar en espera... (Todo despejado)"
-            end
         end)
-        task.wait(1)
+        task.wait(0.5)
     end
 end)
 
--- MOTOR 2: Auto Cartas y Auto Ulti
+-- MOTOR 2: Auto Cartas y Auto Ulti fluido
 task.spawn(function()
     while true do
         pcall(function()
@@ -325,21 +347,21 @@ task.spawn(function()
 
             if getgenv().PixelBladeState.AutoUlti and getgenv().PixelBladeState.AutoFarm and isEnemyAlive then
                 VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
-                task.wait(0.05)
+                task.wait(0.03)
                 VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game)
                 VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-                task.wait(0.05)
+                task.wait(0.03)
                 VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
                 VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
-                task.wait(0.05)
+                task.wait(0.03)
                 VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
             end
         end)
-        task.wait(0.4)
+        task.wait(0.3)
     end
 end)
 
--- MOTOR 3: Combate Clásico y Auto-Avanzar
+-- MOTOR 3: Combate Anti-Vacío y Ataque Fluido
 task.spawn(function()
     while true do
         pcall(function()
@@ -362,18 +384,19 @@ task.spawn(function()
                     end
                     
                     if bestTarget then
-                        hrp.CFrame = bestTarget.CFrame * CFrame.new(0, 0, 2.5)
+                        -- PROTECCIÓN ANTI-VACÍO: Se teletransporta de manera segura a un costado y arriba, evitando caer al agua o paredes
+                        hrp.CFrame = bestTarget.CFrame * CFrame.new(0, 2, 3)
                         VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-                        task.wait(0.05)
+                        task.wait(0.03)
                         VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
                     end
                 end
 
                 if getgenv().PixelBladeState.AutoNextZone and not isEnemyAlive and cachedPortal then
-                    hrp.CFrame = cachedPortal.CFrame
+                    hrp.CFrame = cachedPortal.CFrame * CFrame.new(0, 2, 0)
                 end
             end
         end)
-        task.wait(0.15)
+        task.wait(0.1)
     end
 end)
