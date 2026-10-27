@@ -1,5 +1,5 @@
 --[[
-    Pixel Blade Hub - Ataque Clásico (Cero Lag) + Auto-Ulti
+    Pixel Blade Hub - Ataque Clásico (Cero Lag) + Filtro Anti-Aliados
 ]]
 
 local Players = game:GetService("Players")
@@ -20,10 +20,17 @@ getgenv().PixelBladeState = {
     AutoNextZone = false
 }
 
+-- Lista de objetivos
 local targetMobs = {
-    "zombie", "archer", "mortar", "ghoul", "lumberjack", "cannon_goblin", "mage", "giant"
+    "zombie", "archer", "mortar", "ghoul", "lumberjack", 
+    "cannon_goblin", "mage", "giant", "undead", "skeleton"
 }
 local chestNames = {"chest", "crate"}
+
+-- NUEVO: Lista Negra (Ignora aliados, mascotas o NPCs)
+local ignoreMobs = {
+    "necromancer", "tutorial_clyde", "ally", "summon", "pet", "familiar"
+}
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "PixelBladeSmartHub"
@@ -147,7 +154,6 @@ ChestBtn.MouseButton1Click:Connect(function()
     ChestBtn.BackgroundColor3 = getgenv().PixelBladeState.BreakObjects and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
 end)
 
--- NUEVO BOTÓN: Auto-Ulti / Habilidades
 local UltiBtn = Instance.new("TextButton")
 UltiBtn.Size = UDim2.new(1, -20, 0, 30)
 UltiBtn.Position = UDim2.new(0, 10, 0, 220)
@@ -165,7 +171,6 @@ UltiBtn.MouseButton1Click:Connect(function()
     UltiBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoUlti and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
 end)
 
--- BOTÓN: Auto-Avanzar Zona
 local ZoneBtn = Instance.new("TextButton")
 ZoneBtn.Size = UDim2.new(1, -20, 0, 30)
 ZoneBtn.Position = UDim2.new(0, 10, 0, 255)
@@ -214,12 +219,11 @@ end)
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 ExitBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
--- Caché global para evitar lag
 local cachedTargets = {}
 local cachedPortal = nil
 local isEnemyAlive = false
 
--- MOTOR 1: Radar y Escáner Profundo (Solo 1 vez por segundo = Cero Lag)
+-- MOTOR 1: Radar y Escáner Profundo (Filtra Aliados)
 task.spawn(function()
     while true do
         pcall(function()
@@ -234,26 +238,32 @@ task.spawn(function()
                     local name = obj.Name:lower()
                     local hum = obj:FindFirstChildOfClass("Humanoid")
                     
+                    local isIgnored = false
                     local isKnown = false
                     local isChest = false
                     
-                    for _, mob in ipairs(targetMobs) do if name:find(mob) then isKnown = true break end end
-                    if getgenv().PixelBladeState.BreakObjects then
-                        for _, chest in ipairs(chestNames) do if name:find(chest) then isChest = true break end end
+                    -- Filtro estricto: Si es tu aliado o tiene tu nombre, ignóralo
+                    if name:find("player") or name:find(player.Name:lower()) then isIgnored = true end
+                    for _, ig in ipairs(ignoreMobs) do
+                        if name:find(ig) then isIgnored = true break end
                     end
 
-                    -- Guardar en caché si es objetivo válido (Enemigo vivo o Cofre)
-                    if (isKnown and hum and hum.Health > 0) or isChest then
-                        if isKnown then isEnemyAlive = true end
-                        local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("PrimaryPart") or obj:FindFirstChildOfClass("Part")
-                        if root then
-                            table.insert(newTargets, root)
+                    if not isIgnored then
+                        for _, mob in ipairs(targetMobs) do if name:find(mob) then isKnown = true break end end
+                        if getgenv().PixelBladeState.BreakObjects then
+                            for _, chest in ipairs(chestNames) do if name:find(chest) then isChest = true break end end
                         end
-                    end
 
-                    -- Radar de nuevos mobs
-                    if hum and hum.Health > 0 and name ~= "player" and not name:find("ishiro") and name ~= "tutorial_clyde" then
-                        if not isKnown then detected = detected .. "[Mob] " .. obj.Name .. "\n" end
+                        if (isKnown and hum and hum.Health > 0) or isChest then
+                            if isKnown then isEnemyAlive = true end
+                            local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("PrimaryPart") or obj:FindFirstChildOfClass("Part")
+                            if root then table.insert(newTargets, root) end
+                        end
+
+                        -- Radar de nuevos mobs
+                        if hum and hum.Health > 0 and not isKnown then
+                            detected = detected .. "[Mob] " .. obj.Name .. "\n"
+                        end
                     end
 
                     -- Buscar Portales
@@ -285,7 +295,6 @@ end)
 task.spawn(function()
     while true do
         pcall(function()
-            -- Auto Cartas
             if getgenv().PixelBladeState.AutoCards then
                 for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
                     if gui:IsA("TextButton") and (gui.Text:lower():find("elegir") or gui.Text:lower():find("select")) then
@@ -295,7 +304,6 @@ task.spawn(function()
                     end
                 end
             end
-            -- Auto Ulti/Skills (Dispara las teclas Q, E, R automáticamente)
             if getgenv().PixelBladeState.AutoUlti and getgenv().PixelBladeState.AutoFarm and isEnemyAlive then
                 VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
                 task.wait(0.05)
@@ -312,7 +320,7 @@ task.spawn(function()
     end
 end)
 
--- MOTOR 3: Combate Clásico (Rápido y usando la caché sin lag)
+-- MOTOR 3: Combate Clásico
 task.spawn(function()
     while true do
         pcall(function()
@@ -342,7 +350,6 @@ task.spawn(function()
                     end
                 end
 
-                -- Auto Avanzar Zona si ya no hay enemigos
                 if getgenv().PixelBladeState.AutoNextZone and not isEnemyAlive and cachedPortal then
                     hrp.CFrame = cachedPortal.CFrame
                 end
