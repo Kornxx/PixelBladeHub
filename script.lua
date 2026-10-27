@@ -1,5 +1,5 @@
 --[[
-    Pixel Blade Hub - Versión Premium (Pestañas Dungeon/Raid + Árbol Inteligente)
+    Pixel Blade Hub - Código Maestro (Optimizado para Móvil + Auto-Caza de Jefes + AFK Infinito)
 ]]
 
 local Players = game:GetService("Players")
@@ -18,16 +18,14 @@ if not getgenv().PixelBladeState then
         AutoFarm = false,
         AutoCards = true,
         AutoUlti = false,
-        -- Exclusivos de Dungeon
+        AutoContinue = true,
         BreakObjects = true,
         AutoNextZone = false,
         AutoButtons = false,
-        -- Exclusivos de Raid
         AutoTree = false
     }
 end
 
--- SISTEMA DE AUTO-REJOIN
 pcall(function()
     if queue_on_teleport then
         queue_on_teleport([[
@@ -48,9 +46,10 @@ local ignoreMobs = {
     "black_chest", "locked", "key_chest", "boss_chest", "key", "black"
 }
 
--- INTERFAZ GRÁFICA (HUD)
+-- INTERFAZ GRÁFICA (HUD) LIGERA
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "PixelBladeSmartHub"
+ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
@@ -71,7 +70,7 @@ TopBar.Parent = MainFrame
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -60, 1, 0)
 Title.Position = UDim2.new(0, 5, 0, 0)
-Title.Text = "Blade Hub [Pro AFK]"
+Title.Text = "Blade Hub [Max Opt]"
 Title.TextColor3 = Color3.fromRGB(20, 20, 15)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 14
@@ -101,7 +100,6 @@ CloseBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
 CloseBtn.BorderSizePixel = 0
 CloseBtn.Parent = TopBar
 
--- PESTAÑAS (TABS)
 local TabBar = Instance.new("Frame")
 TabBar.Size = UDim2.new(1, 0, 0, 25)
 TabBar.Position = UDim2.new(0, 0, 0, 30)
@@ -111,7 +109,6 @@ TabBar.Parent = MainFrame
 
 local TabDungeonBtn = Instance.new("TextButton")
 TabDungeonBtn.Size = UDim2.new(0.5, 0, 1, 0)
-TabDungeonBtn.Position = UDim2.new(0, 0, 0, 0)
 TabDungeonBtn.Text = "DUNGEON"
 TabDungeonBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 TabDungeonBtn.Font = Enum.Font.SourceSansBold
@@ -131,7 +128,6 @@ TabRaidBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 35)
 TabRaidBtn.BorderSizePixel = 0
 TabRaidBtn.Parent = TabBar
 
--- CONTENEDORES DE PESTAÑAS
 local DungeonTab = Instance.new("Frame")
 DungeonTab.Size = UDim2.new(1, 0, 1, -85)
 DungeonTab.Position = UDim2.new(0, 0, 0, 55)
@@ -146,7 +142,6 @@ RaidTab.BackgroundTransparency = 1
 RaidTab.Visible = false
 RaidTab.Parent = MainFrame
 
--- FUNCIÓN PARA CREAR BOTONES ESTÁNDAR
 local function createButton(parent, text, yPos, stateKey, colorOn, colorOff)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, -20, 0, 26)
@@ -169,13 +164,12 @@ end
 
 local colorOn = Color3.fromRGB(180, 220, 180)
 local colorOff = Color3.fromRGB(245, 245, 220)
-local raidColorOn = Color3.fromRGB(200, 180, 220) -- Color especial para pestaña Raid
+local raidColorOn = Color3.fromRGB(200, 180, 220) 
 
--- ELEMENTOS DUNGEON TAB
 local RadarDungeon = Instance.new("TextBox")
 RadarDungeon.Size = UDim2.new(1, -20, 0, 55)
 RadarDungeon.Position = UDim2.new(0, 10, 0, 5)
-RadarDungeon.Text = "Radar Dungeon Limpio..."
+RadarDungeon.Text = "Radar Optimizado (Esperando)..."
 RadarDungeon.TextColor3 = Color3.fromRGB(255, 255, 255)
 RadarDungeon.Font = Enum.Font.Code
 RadarDungeon.TextSize = 10
@@ -192,28 +186,17 @@ local D_Ulti = createButton(DungeonTab, "Auto-Habilidades (Ulti)", 125, "AutoUlt
 local D_Chests = createButton(DungeonTab, "Romper Cofres", 155, "BreakObjects", colorOn, colorOff)
 local D_Zone = createButton(DungeonTab, "Auto-Avanzar (Portales)", 185, "AutoNextZone", colorOn, colorOff)
 local D_Boss = createButton(DungeonTab, "Auto-Botones (Jefes)", 215, "AutoButtons", colorOn, colorOff)
+local D_Continue = createButton(DungeonTab, "Auto-Seguir (Continuar)", 245, "AutoContinue", colorOn, colorOff)
 
--- ELEMENTOS RAID TAB
-local RadarRaid = Instance.new("TextBox")
-RadarRaid.Size = UDim2.new(1, -20, 0, 55)
-RadarRaid.Position = UDim2.new(0, 10, 0, 5)
-RadarRaid.Text = "Radar Raid Limpio..."
-RadarRaid.TextColor3 = Color3.fromRGB(255, 255, 255)
-RadarRaid.Font = Enum.Font.Code
-RadarRaid.TextSize = 10
-RadarRaid.TextWrapped = true
-RadarRaid.ClearTextOnFocus = false
-RadarRaid.MultiLine = true
-RadarRaid.BackgroundColor3 = Color3.fromRGB(50, 50, 45)
-RadarRaid.BorderSizePixel = 0
+local RadarRaid = RadarDungeon:Clone()
 RadarRaid.Parent = RaidTab
 
 local R_Farm = createButton(RaidTab, "Auto-Farm Raids", 65, "AutoFarm", raidColorOn, colorOff)
 local R_Cards = createButton(RaidTab, "Auto-Cartas (Llama/Furia)", 95, "AutoCards", raidColorOn, colorOff)
 local R_Ulti = createButton(RaidTab, "Auto-Habilidades (Ulti)", 125, "AutoUlti", raidColorOn, colorOff)
 local R_Tree = createButton(RaidTab, "Auto-Árbol (Sig. Oleada)", 155, "AutoTree", raidColorOn, colorOff)
+local R_Continue = createButton(RaidTab, "Auto-Seguir (Continuar)", 185, "AutoContinue", raidColorOn, colorOff)
 
--- SINCRONIZAR BOTONES COMPARTIDOS
 local function syncButtons()
     D_Farm.Text = "Auto-Farm Mobs: " .. (getgenv().PixelBladeState.AutoFarm and "ON" or "OFF")
     D_Farm.BackgroundColor3 = getgenv().PixelBladeState.AutoFarm and colorOn or colorOff
@@ -229,6 +212,11 @@ local function syncButtons()
     D_Ulti.BackgroundColor3 = getgenv().PixelBladeState.AutoUlti and colorOn or colorOff
     R_Ulti.Text = "Auto-Habilidades (Ulti): " .. (getgenv().PixelBladeState.AutoUlti and "ON" or "OFF")
     R_Ulti.BackgroundColor3 = getgenv().PixelBladeState.AutoUlti and raidColorOn or colorOff
+    
+    D_Continue.Text = "Auto-Seguir (Continuar): " .. (getgenv().PixelBladeState.AutoContinue and "ON" or "OFF")
+    D_Continue.BackgroundColor3 = getgenv().PixelBladeState.AutoContinue and colorOn or colorOff
+    R_Continue.Text = "Auto-Seguir (Continuar): " .. (getgenv().PixelBladeState.AutoContinue and "ON" or "OFF")
+    R_Continue.BackgroundColor3 = getgenv().PixelBladeState.AutoContinue and raidColorOn or colorOff
 end
 
 D_Farm.MouseButton1Click:Connect(syncButtons)
@@ -237,8 +225,9 @@ D_Cards.MouseButton1Click:Connect(syncButtons)
 R_Cards.MouseButton1Click:Connect(syncButtons)
 D_Ulti.MouseButton1Click:Connect(syncButtons)
 R_Ulti.MouseButton1Click:Connect(syncButtons)
+D_Continue.MouseButton1Click:Connect(syncButtons)
+R_Continue.MouseButton1Click:Connect(syncButtons)
 
--- CONTROL DE PESTAÑAS
 TabDungeonBtn.MouseButton1Click:Connect(function()
     DungeonTab.Visible = true
     RaidTab.Visible = false
@@ -257,7 +246,6 @@ TabRaidBtn.MouseButton1Click:Connect(function()
     TabDungeonBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
 end)
 
--- BOTÓN CERRAR GLOBAL
 local ExitBtn = Instance.new("TextButton")
 ExitBtn.Size = UDim2.new(1, -20, 0, 24)
 ExitBtn.Position = UDim2.new(0, 10, 1, -30)
@@ -301,7 +289,7 @@ local cachedTree = nil
 local cachedButton = nil
 local isEnemyAlive = false
 
--- MOTOR 1: Radar Separado (Filtra Desconocidos y Separa Árbol vs Portales)
+-- MOTOR 1: Radar Ligero y Asíncrono (Evita Lag en Móvil, se ejecuta cada 1.5s)
 task.spawn(function()
     while true do
         pcall(function()
@@ -320,20 +308,16 @@ task.spawn(function()
                     
                     if obj ~= char then
                         local isIgnored = false
-                        local isKnown = false
                         local isChest = false
                         
                         if obj:IsDescendantOf(char) or name:find("player") or name:find(player.Name:lower()) then 
                             isIgnored = true 
                         end
-                        
                         for _, ig in ipairs(ignoreMobs) do
                             if name:find(ig) then isIgnored = true break end
                         end
 
                         if not isIgnored then
-                            for _, mob in ipairs(targetMobs) do if name:find(mob) then isKnown = true break end end
-                            
                             if getgenv().PixelBladeState.BreakObjects then
                                 for _, chest in ipairs(chestNames) do 
                                     if name:find(chest) and not name:find("black") and not name:find("key") and not name:find("locked") then 
@@ -343,15 +327,18 @@ task.spawn(function()
                                 end
                             end
 
-                            if (isKnown and hum and hum.Health > 0) or isChest then
-                                if isKnown then isEnemyAlive = true end
+                            -- Auto-Caza Absoluta: Si tiene vida y NO es un aliado/cofre negro, lo ataca obligatoriamente
+                            if (hum and hum.Health > 0 and hum.MaxHealth > 1) or isChest then
+                                if hum and not isChest then 
+                                    isEnemyAlive = true 
+                                    local isKnown = false
+                                    for _, mob in ipairs(targetMobs) do if name:find(mob) then isKnown = true break end end
+                                    if not isKnown and not unknownNames[obj.Name] then 
+                                        unknownNames[obj.Name] = true 
+                                    end
+                                end
                                 local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("PrimaryPart") or obj:FindFirstChildOfClass("Part")
                                 if root then table.insert(newTargets, root) end
-                            elseif hum and hum.Health > 0 and not isKnown then
-                                isEnemyAlive = true
-                                local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("PrimaryPart") or obj:FindFirstChildOfClass("Part")
-                                if root then table.insert(newTargets, root) end
-                                if not unknownNames[obj.Name] then unknownNames[obj.Name] = true end
                             end
 
                             if getgenv().PixelBladeState.AutoButtons then
@@ -364,7 +351,6 @@ task.spawn(function()
                         end
                     end
 
-                    -- Detección separada: Portales de Dungeon vs Árbol/Círculo de Raids
                     if getgenv().PixelBladeState.AutoNextZone then
                         if name:find("portal") or name:find("exit_door") or name:find("door") or name:find("next") then
                             if not pFound then pFound = obj:IsA("Part") and obj or obj:FindFirstChildOfClass("Part") or obj:FindFirstChild("PrimaryPart") end
@@ -386,21 +372,41 @@ task.spawn(function()
 
             local unknownList = ""
             for mobName, _ in pairs(unknownNames) do
-                unknownList = unknownList .. "[NUEVO] " .. mobName .. "\n"
+                unknownList = unknownList .. "[Auto-Cazado] " .. mobName .. "\n"
             end
 
-            local radarText = unknownList ~= "" and "¡Enemigos Nuevos!\n" .. unknownList or "Radar limpio (Sin desconocidos)"
+            local radarText = unknownList ~= "" and "Nuevos Eliminados:\n" .. unknownList or "Radar limpio (Sin desconocidos)"
             RadarDungeon.Text = radarText
             RadarRaid.Text = radarText
         end)
-        task.wait(0.3)
+        task.wait(1.5) -- Aumentado a 1.5s para no quemar el Snapdragon del Redmi
     end
 end)
 
--- MOTOR 2: Auto-Cartas Inteligente (Prioridad: Llama y Espíritus)
+-- MOTOR 2: Escáner UI Optimizado (1 segundo de intervalo)
 task.spawn(function()
     while true do
         pcall(function()
+            if getgenv().PixelBladeState.AutoContinue then
+                for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
+                    if gui:IsA("TextButton") and gui.Visible then
+                        local text = gui.Text:lower()
+                        if text:find("seguir") or text:find("continuar") or text:find("next") or text:find("continue") then
+                            local absPos = gui.AbsolutePosition
+                            local absSize = gui.AbsoluteSize
+                            if absPos.X > 0 and absSize.X > 0 then
+                                for _, conn in ipairs(getconnections(gui.MouseButton1Click)) do conn:Fire() end
+                                for _, conn in ipairs(getconnections(gui.Activated)) do conn:Fire() end
+                                VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 1)
+                                task.wait(0.1)
+                                VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, false, game, 1)
+                                task.wait(1)
+                            end
+                        end
+                    end
+                end
+            end
+
             if getgenv().PixelBladeState.AutoCards then
                 local priorityCard = nil
                 local anyCard = nil
@@ -432,29 +438,17 @@ task.spawn(function()
                         for _, conn in ipairs(getconnections(targetCard.MouseButton1Click)) do conn:Fire() end
                         for _, conn in ipairs(getconnections(targetCard.Activated)) do conn:Fire() end
                         VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 1)
-                        task.wait(0.05)
+                        task.wait(0.1)
                         VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, false, game, 1)
                     end
                 end
             end
-
-            if getgenv().PixelBladeState.AutoUlti and getgenv().PixelBladeState.AutoFarm and isEnemyAlive then
-                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
-                task.wait(0.02)
-                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game)
-                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-                task.wait(0.02)
-                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
-                task.wait(0.02)
-                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
-            end
         end)
-        task.wait(0.2)
+        task.wait(1) -- Escaneo relajado para estabilizar FPS
     end
 end)
 
--- MOTOR 3: Combate Fluido y Transiciones Seguras
+-- MOTOR 3: Combate Anti-Lag (Control de Distancia y Clicks Estabilizados)
 task.spawn(function()
     while true do
         pcall(function()
@@ -467,7 +461,7 @@ task.spawn(function()
                     local minDistance = math.huge
                     
                     for _, root in ipairs(cachedTargets) do
-                        if root and root.Parent then
+                        if root and root.Parent and root:IsDescendantOf(Workspace) then
                             local dist = (hrp.Position - root.Position).Magnitude
                             if dist < minDistance then
                                 minDistance = dist
@@ -477,31 +471,50 @@ task.spawn(function()
                     end
                     
                     if bestTarget then
-                        hrp.CFrame = bestTarget.CFrame * CFrame.new(0, 2, 2.5)
+                        -- SISTEMA ANTI-LAG: Si ya está cerca, no teletransporta, solo gira para atacar sin sacudir la cámara
+                        if minDistance > 4 then
+                            hrp.CFrame = bestTarget.CFrame * CFrame.new(0, 0, 3)
+                        else
+                            hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(bestTarget.Position.X, hrp.Position.Y, bestTarget.Position.Z))
+                        end
+                        
                         VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-                        task.wait(0.02)
+                        task.wait(0.1) -- Clic respetuoso con el procesador móvil
                         VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+                        
+                        if getgenv().PixelBladeState.AutoUlti then
+                            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
+                            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
+                            task.wait(0.05)
+                            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game)
+                            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
+                        end
                     end
                 
                 elseif not isEnemyAlive then
-                    -- Dungeon: Portales
                     if getgenv().PixelBladeState.AutoNextZone and cachedPortal then
-                        hrp.CFrame = cachedPortal.CFrame * CFrame.new(0, 2, 0)
-                    -- Dungeon: Botones (Mantiene E)
+                        if (hrp.Position - cachedPortal.Position).Magnitude > 4 then
+                            hrp.CFrame = cachedPortal.CFrame * CFrame.new(0, 2, 0)
+                        end
                     elseif getgenv().PixelBladeState.AutoButtons and cachedButton then
-                        hrp.CFrame = cachedButton.CFrame * CFrame.new(0, 2, 2)
+                        if (hrp.Position - cachedButton.Position).Magnitude > 4 then
+                            hrp.CFrame = cachedButton.CFrame * CFrame.new(0, 2, 2)
+                        end
                         task.wait(0.2)
                         VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
                         task.wait(1.0)
                         VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-                    -- Raid: Árbol / Oleadas (Espera un poco para evitar bugs de fase)
                     elseif getgenv().PixelBladeState.AutoTree and cachedTree then
-                        task.wait(1.5) -- Pausa inteligente para asegurar que la oleada terminó
-                        hrp.CFrame = cachedTree.CFrame * CFrame.new(0, 2, 0)
+                        task.wait(1.5)
+                        if (hrp.Position - cachedTree.Position).Magnitude > 4 then
+                            hrp.CFrame = cachedTree.CFrame * CFrame.new(0, 2, 0)
+                        end
                     end
                 end
             end
         end)
-        task.wait(0.08)
+        task.wait(0.1)
     end
 end)
