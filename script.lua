@@ -1,5 +1,5 @@
 --[[
-    Shiro Hub [v1.1] - Radar de Mapeo Activo (Cero Lag) + Caché de Eventos
+    Shiro Hub [v1.2] - Máxima Optimización Móvil + Sin Radar + Spawn Definitivo
 ]]
 
 local Players = game:GetService("Players")
@@ -47,7 +47,7 @@ local ignoreMobs = {
 }
 
 -- ==========================================
--- INTERFAZ GRÁFICA (HUD) SHIRO HUB v1.1
+-- INTERFAZ GRÁFICA (HUD) SHIRO HUB v1.2
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "ShiroSmartHub"
@@ -55,8 +55,8 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 250, 0, 370) -- Tamaño ajustado para el radar
-MainFrame.Position = UDim2.new(0.5, -125, 0.5, -185)
+MainFrame.Size = UDim2.new(0, 250, 0, 310) -- Interfaz compacta al quitar el radar
+MainFrame.Position = UDim2.new(0.5, -125, 0.5, -155)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -80,7 +80,7 @@ UICorner_Top.Parent = TopBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -70, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "Shiro Hub [v1.1]"
+Title.Text = "Shiro Hub [v1.2]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -183,27 +183,12 @@ local D_Zone = createButton(DungeonTab, "Auto-Avanzar Portales", 140, "AutoNextZ
 local D_Boss = createButton(DungeonTab, "Auto-Botones Jefes", 175, "AutoButtons", colorOn)
 local D_Continue = createButton(DungeonTab, "Auto-Seguir Partida", 210, "AutoContinue", colorOn)
 
--- ======================= ELEMENTOS RAID (CON RADAR) =======================
-local RadarRaid = Instance.new("TextBox")
-RadarRaid.Size = UDim2.new(1, -20, 0, 50)
-RadarRaid.Position = UDim2.new(0, 10, 0, 0)
-RadarRaid.Text = "Radar de Bases...\n(Iniciando)"
-RadarRaid.TextColor3 = Color3.fromRGB(220, 180, 255)
-RadarRaid.Font = Enum.Font.Code
-RadarRaid.TextSize = 9
-RadarRaid.TextWrapped = true
-RadarRaid.ClearTextOnFocus = false
-RadarRaid.BackgroundColor3 = Color3.fromRGB(25, 20, 30)
-RadarRaid.BorderSizePixel = 0
-RadarRaid.TextYAlignment = Enum.TextYAlignment.Top
-RadarRaid.Parent = RaidTab
-Instance.new("UICorner", RadarRaid).CornerRadius = UDim.new(0, 6)
-
-local R_Farm = createButton(RaidTab, "Auto-Farm Raids", 55, "AutoFarm", raidColorOn)
-local R_Cards = createButton(RaidTab, "Auto-Cartas", 90, "AutoCards", raidColorOn)
-local R_Ulti = createButton(RaidTab, "Auto-Habilidades (No Dash)", 125, "AutoUlti", raidColorOn)
-local R_Tree = createButton(RaidTab, "Proteger Spawn (Raid)", 160, "AutoTree", raidColorOn)
-local R_Continue = createButton(RaidTab, "Auto-Seguir Partida", 195, "AutoContinue", raidColorOn)
+-- ======================= ELEMENTOS RAID (SIN RADAR) =======================
+local R_Farm = createButton(RaidTab, "Auto-Farm Raids", 0, "AutoFarm", raidColorOn)
+local R_Cards = createButton(RaidTab, "Auto-Cartas", 35, "AutoCards", raidColorOn)
+local R_Ulti = createButton(RaidTab, "Auto-Habilidades (No Dash)", 70, "AutoUlti", raidColorOn)
+local R_Tree = createButton(RaidTab, "Proteger Spawn (Raid)", 105, "AutoTree", raidColorOn)
+local R_Continue = createButton(RaidTab, "Auto-Seguir Partida", 140, "AutoContinue", raidColorOn)
 
 local function syncButtons()
     D_Farm.Text = "Auto-Farm Mobs: " .. (getgenv().ShiroHubState.AutoFarm and "ON" or "OFF")
@@ -265,7 +250,7 @@ MinimizeBtn.MouseButton1Click:Connect(function()
         DungeonTab.Visible = false
         RaidTab.Visible = false
     else
-        MainFrame.Size = UDim2.new(0, 250, 0, 370)
+        MainFrame.Size = UDim2.new(0, 250, 0, 310)
         TabBar.Visible = true
         if TabDungeonBtn.BackgroundTransparency == 0 then
             DungeonTab.Visible = true
@@ -278,11 +263,11 @@ end)
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
 -- ==========================================
--- MOTOR 1: CACHÉ POR EVENTOS (CERO LAG CPU)
+-- MOTOR 1: CACHÉ POR EVENTOS (ULTRA OPTIMIZADO)
 -- ==========================================
 local WorldCache = {
     Mobs = {},
-    Trees = {}, -- AHORA GUARDAMOS TODOS LOS ÁRBOLES/SPAWNS AQUÍ
+    Spawns = {},
     Portal = nil,
     Button = nil
 }
@@ -296,9 +281,9 @@ local function classifyObject(obj)
             local hum = obj:FindFirstChildOfClass("Humanoid")
             if hum then WorldCache.Mobs[obj] = hum end
         elseif obj:IsA("BasePart") then
-            -- Mapeo Masivo de Spawns
-            if name:find("spawn") or name:find("circle") or name:find("raid") or name:find("tree") or name:find("wave") or obj:FindFirstChildOfClass("ProximityPrompt") then
-                WorldCache.Trees[obj] = obj.Name
+            -- Búsqueda exclusiva de los spawns de las raids
+            if name == "spawn" then
+                WorldCache.Spawns[obj] = true
             elseif name:find("portal") or name:find("exit_door") or name:find("door") then
                 WorldCache.Portal = obj
             elseif (name:find("button") or name:find("switch") or name:find("lever")) and not name:find("chest") then
@@ -316,48 +301,13 @@ local function classifyObject(obj)
     end)
 end
 
--- Escucha activa sin saturar CPU
 Workspace.DescendantAdded:Connect(classifyObject)
 
--- Escaneo inicial segmentado
 task.spawn(function()
     local allDescendants = Workspace:GetDescendants()
     for i, obj in ipairs(allDescendants) do
         classifyObject(obj)
-        if i % 250 == 0 then task.wait() end 
-    end
-end)
-
--- ==========================================
--- RADAR DE MAPEO ACTIVO (Para Identificar Spawns)
--- ==========================================
-task.spawn(function()
-    while true do
-        pcall(function()
-            if RaidTab.Visible then
-                local char = player.Character
-                local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                local radarText = "📡 MAPEO DE BASES:\n"
-                local count = 0
-                
-                for obj, trueName in pairs(WorldCache.Trees) do
-                    if obj and obj.Parent then
-                        local dist = hrp and math.floor((hrp.Position - obj.Position).Magnitude) or 0
-                        radarText = radarText .. "- " .. trueName .. " (Dist: " .. dist .. ")\n"
-                        count = count + 1
-                    else
-                        WorldCache.Trees[obj] = nil -- Limpia si fue destruido
-                    end
-                end
-                
-                if count == 0 then
-                    RadarRaid.Text = "📡 MAPEO: Buscando..."
-                else
-                    RadarRaid.Text = radarText
-                end
-            end
-        end)
-        task.wait(1.5) -- Actualiza lento para no laguear la interfaz
+        if i % 300 == 0 then task.wait() end 
     end
 end)
 
@@ -413,12 +363,12 @@ task.spawn(function()
                 end
             end
         end)
-        task.wait(0.8) 
+        task.wait(1.0) -- Frecuencia ligera para ahorrar batería y CPU en móvil
     end
 end)
 
 -- ==========================================
--- MOTOR 3: COMBATE TÁCTICO Y TP AL SPAWN CERCANO
+-- MOTOR 3: COMBATE TÁCTICO Y TP AL SPAWN ACTIVO
 -- ==========================================
 task.spawn(function()
     while true do
@@ -430,20 +380,22 @@ task.spawn(function()
                 local bestTarget = nil
                 local minDistance = math.huge
                 
-                -- IDENTIFICAR EL ÁRBOL/SPAWN MÁS CERCANO (Evita ir al árbol #3 lejano)
-                local closestTree = nil
-                local minTreeDist = math.huge
-                for obj, _ in pairs(WorldCache.Trees) do
+                -- SELECCIONAR ÚNICAMENTE EL SPAWN MÁS CERCANO (Descartando los otros 3 lejanos)
+                local activeSpawn = nil
+                local minSpawnDist = math.huge
+                for obj, _ in pairs(WorldCache.Spawns) do
                     if obj and obj.Parent then
-                        local tDist = (hrp.Position - obj.Position).Magnitude
-                        if tDist < minTreeDist then
-                            minTreeDist = tDist
-                            closestTree = obj
+                        local sDist = (hrp.Position - obj.Position).Magnitude
+                        if sDist < minSpawnDist then
+                            minSpawnDist = sDist
+                            activeSpawn = obj
                         end
+                    else
+                        WorldCache.Spawns[obj] = nil
                     end
                 end
                 
-                -- Limpieza y Evaluación de Caché de Mobs
+                -- Evaluación de Mobs
                 if getgenv().ShiroHubState.AutoFarm then
                     for obj, hum in pairs(WorldCache.Mobs) do
                         if obj and obj.Parent and hum and (hum.Health > 0) then
@@ -460,9 +412,9 @@ task.spawn(function()
                                 local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("PrimaryPart") or (obj:IsA("BasePart") and obj)
                                 if root then
                                     local dist = math.huge
-                                    -- RADAR DEFENSIVO: Defiende el spawn MÁS CERCANO
-                                    if getgenv().ShiroHubState.AutoTree and closestTree then
-                                        dist = (closestTree.Position - root.Position).Magnitude
+                                    -- RADAR DEFENSIVO: Si estamos en raid, defiende el spawn activo cercano
+                                    if getgenv().ShiroHubState.AutoTree and activeSpawn then
+                                        dist = (activeSpawn.Position - root.Position).Magnitude
                                     else
                                         dist = (hrp.Position - root.Position).Magnitude
                                     end
@@ -515,10 +467,10 @@ task.spawn(function()
                         task.wait(1.0)
                         VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
                         
-                    -- TP INTELIGENTE AL SPAWN MÁS CERCANO AL JUGADOR
-                    elseif getgenv().ShiroHubState.AutoTree and closestTree then
-                        if (hrp.Position - closestTree.Position).Magnitude > 3 then
-                            hrp.CFrame = closestTree.CFrame * CFrame.new(0, 2.5, 0)
+                    -- TP INSTANTÁNEO ÚNICAMENTE AL SPAWN ACTIVO CERCANO
+                    elseif getgenv().ShiroHubState.AutoTree and activeSpawn then
+                        if (hrp.Position - activeSpawn.Position).Magnitude > 3 then
+                            hrp.CFrame = activeSpawn.CFrame * CFrame.new(0, 2.5, 0)
                         else
                             VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
                             task.wait(0.1)
