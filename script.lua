@@ -360,4 +360,120 @@ task.spawn(function()
         pcall(function()
             -- 1. Auto-Seguir
             if getgenv().PixelBladeState.AutoContinue then
-                for _, gui in ipairs(player.Player
+                for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
+                    if gui:IsA("TextButton") and gui.Visible then
+                        local text = gui.Text:lower()
+                        if (text:find("seguir") or text:find("continuar") or text:find("next")) and not text:find("salir") and not text:find("lobby") and not text:find("return") then
+                            local absPos = gui.AbsolutePosition
+                            local absSize = gui.AbsoluteSize
+                            if absPos.X > 0 and absSize.X > 0 then
+                                for _, conn in ipairs(getconnections(gui.MouseButton1Click)) do conn:Fire() end
+                                for _, conn in ipairs(getconnections(gui.Activated)) do conn:Fire() end
+                                VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 1)
+                                task.wait(0.1)
+                                VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, false, game, 1)
+                                task.wait(1.5)
+                            end
+                        end
+                    end
+                end
+            end
+
+            -- 2. Auto-Cartas 100% Blindado
+            if getgenv().PixelBladeState.AutoCards then
+                local foundCards = {}
+                for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
+                    if gui:IsA("TextButton") and gui.Visible then
+                        local btnText = gui.Text:lower()
+                        if btnText:find("elegir") or btnText:find("choose") or btnText:find("select") or gui.Name:lower():find("card") or gui.Name:lower():find("carta") then
+                            table.insert(foundCards, gui)
+                        end
+                    end
+                end
+                
+                if #foundCards > 0 then
+                    local randomCard = foundCards[math.random(1, #foundCards)]
+                    local absPos = randomCard.AbsolutePosition
+                    local absSize = randomCard.AbsoluteSize
+                    if absPos.X > 0 and absSize.X > 0 then
+                        for _, conn in ipairs(getconnections(randomCard.MouseButton1Click)) do conn:Fire() end
+                        for _, conn in ipairs(getconnections(randomCard.Activated)) do conn:Fire() end
+                        VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 1)
+                        task.wait(0.1)
+                        VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, false, game, 1)
+                        task.wait(1.5)
+                    end
+                end
+            end
+        end)
+        task.wait(0.3)
+    end
+end)
+
+-- MOTOR 3: Combate y Teletransporte sin Dash
+task.spawn(function()
+    while true do
+        pcall(function()
+            local char = player.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                local hrp = char.HumanoidRootPart
+                
+                if getgenv().PixelBladeState.AutoFarm and isEnemyAlive then
+                    local bestTarget = nil
+                    local minDistance = math.huge
+                    
+                    for _, root in ipairs(cachedTargets) do
+                        if root and root.Parent and root:IsDescendantOf(Workspace) then
+                            local dist = (hrp.Position - root.Position).Magnitude
+                            if dist < minDistance then
+                                minDistance = dist
+                                bestTarget = root
+                            end
+                        end
+                    end
+                    
+                    if bestTarget then
+                        if minDistance > 4 then
+                            hrp.CFrame = bestTarget.CFrame * CFrame.new(0, 0, 3)
+                        else
+                            hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(bestTarget.Position.X, hrp.Position.Y, bestTarget.Position.Z))
+                        end
+                        
+                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
+                        task.wait(0.1)
+                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+                        
+                        if getgenv().PixelBladeState.AutoUlti then
+                            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
+                            task.wait(0.05)
+                            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
+                        end
+                    end
+                
+                elseif not isEnemyAlive then
+                    if getgenv().PixelBladeState.AutoNextZone and cachedPortal then
+                        if (hrp.Position - cachedPortal.Position).Magnitude > 4 then
+                            hrp.CFrame = cachedPortal.CFrame * CFrame.new(0, 2, 0)
+                        end
+                    elseif getgenv().PixelBladeState.AutoButtons and cachedButton then
+                        if (hrp.Position - cachedButton.Position).Magnitude > 4 then
+                            hrp.CFrame = cachedButton.CFrame * CFrame.new(0, 2, 2)
+                        end
+                        task.wait(0.2)
+                        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                        task.wait(1.0)
+                        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                    elseif getgenv().PixelBladeState.AutoTree and cachedTree then
+                        task.wait(2.0)
+                        if (hrp.Position - cachedTree.Position).Magnitude > 4 then
+                            hrp.CFrame = cachedTree.CFrame * CFrame.new(0, 2, 0)
+                        end
+                    end
+                end
+            end
+        end)
+        task.wait(0.1)
+    end
+end)
