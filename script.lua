@@ -1,5 +1,5 @@
 --[[
-    Pixel Blade Hub - Auto Farm (Con Lumberjack + Minimizar)
+    Pixel Blade Hub - Auto Cartas Corregido
 ]]
 
 local Players = game:GetService("Players")
@@ -40,7 +40,7 @@ TopBar.Parent = MainFrame
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -60, 1, 0)
 Title.Position = UDim2.new(0, 5, 0, 0)
-Title.Text = "Pixel Blade Hub"
+Title.Text = "Blade Hub"
 Title.TextColor3 = Color3.fromRGB(20, 20, 15)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 13
@@ -48,7 +48,6 @@ Title.BackgroundTransparency = 1
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = TopBar
 
--- Botón para Minimizar / Contraer (- / +)
 local isMinimized = false
 local MinimizeBtn = Instance.new("TextButton")
 MinimizeBtn.Size = UDim2.new(0, 25, 0, 20)
@@ -61,7 +60,6 @@ MinimizeBtn.BackgroundColor3 = Color3.fromRGB(200, 200, 180)
 MinimizeBtn.BorderSizePixel = 0
 MinimizeBtn.Parent = TopBar
 
--- Botón para Cerrar por completo (X)
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 25, 0, 20)
 CloseBtn.Position = UDim2.new(1, -28, 0, 5)
@@ -73,7 +71,6 @@ CloseBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
 CloseBtn.BorderSizePixel = 0
 CloseBtn.Parent = TopBar
 
--- Contenedor de elementos para ocultar al minimizar
 local ContentContainer = Instance.new("Folder")
 ContentContainer.Name = "ContentContainer"
 ContentContainer.Parent = MainFrame
@@ -95,11 +92,11 @@ RadarBox.Parent = ContentContainer
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Size = UDim2.new(1, -20, 0, 30)
 ToggleBtn.Position = UDim2.new(0, 10, 0, 115)
-ToggleBtn.Text = "Auto-Farm Mobs: OFF"
+ToggleBtn.Text = "Auto-Farm Mobs: ON"
 ToggleBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
 ToggleBtn.Font = Enum.Font.SourceSansBold
 ToggleBtn.TextSize = 12
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(245, 245, 220)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 220, 180)
 ToggleBtn.BorderSizePixel = 0
 ToggleBtn.Parent = ContentContainer
 
@@ -179,7 +176,6 @@ ExitBtn.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
 
--- Buscador optimizado que ya incluye al lumberjack, zombis, arqueros, mortars y cofres
 local function getBestTarget()
     local char = player.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
@@ -197,7 +193,6 @@ local function getBestTarget()
             if humanoid and humanoid.Health > 0 and name ~= "player" and not name:find("ishiro") and name ~= "tutorial_clyde" then
                 discoveredMobs = discoveredMobs .. obj.Name .. "\n"
 
-                -- Lista ampliada con el nuevo 'lumberjack'
                 local isKnown = name:find("zombie") or name:find("archer") or name:find("mortar") or name:find("ghoul") or name:find("lumberjack")
                 local isChest = getgenv().PixelBladeState.BreakObjects and (name:find("chest") or name:find("crate"))
 
@@ -224,20 +219,33 @@ local function getBestTarget()
     return bestTarget
 end
 
--- Motor principal de combate y selección de cartas
+-- Motor mejorado con escaneo profundo de botones de cartas (ELEGIR)
 task.spawn(function()
     while true do
         pcall(function()
             if getgenv().PixelBladeState.AutoCards then
-                for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
-                    if gui:IsA("TextButton") and (gui.Text:lower():find("elegir") or gui.Text:lower():find("select")) then
-                        local vim = VirtualInputManager
+                for _, gui in ipairs(game:GetService("CoreGui"):GetDescendants()) do
+                    if (gui:IsA("TextButton") or gui:IsA("ImageButton")) and (gui.Name:lower():find("elegir") or (gui:IsA("TextButton") and gui.Text:upper():find("ELEGIR"))) then
                         local absPos = gui.AbsolutePosition
                         local absSize = gui.AbsoluteSize
-                        vim:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 1)
-                        task.wait(0.05)
-                        vim:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, false, game, 1)
-                        task.wait(1)
+                        if absPos.X > 0 and absSize.X > 0 then
+                            VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 1)
+                            task.wait(0.05)
+                            VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, false, game, 1)
+                            task.wait(1.5)
+                        end
+                    end
+                end
+                for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
+                    if (gui:IsA("TextButton") or gui:IsA("ImageButton")) and (gui.Name:lower():find("elegir") or (gui:IsA("TextButton") and gui.Text:upper():find("ELEGIR"))) then
+                        local absPos = gui.AbsolutePosition
+                        local absSize = gui.AbsoluteSize
+                        if absPos.X > 0 and absSize.X > 0 then
+                            VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 1)
+                            task.wait(0.05)
+                            VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, false, game, 1)
+                            task.wait(1.5)
+                        end
                     end
                 end
             end
