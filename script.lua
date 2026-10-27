@@ -1,5 +1,5 @@
 --[[
-    Pixel Blade Hub - Versión Definitiva Maestro (Raids Horda + Auto-Rejoin + Cartas Pro)
+    Pixel Blade Hub - Versión Definitiva Maestro (Radar Total + Hordas Raids + Auto-Rejoin)
 ]]
 
 local Players = game:GetService("Players")
@@ -24,7 +24,7 @@ if not getgenv().PixelBladeState then
     }
 end
 
--- SISTEMA DE AUTO-REJOIN Y REINYECCIÓN AUTOMÁTICA TRAS TERMINAR RAID / CAMBIAR DE ZONA
+-- SISTEMA DE AUTO-REJOIN Y REINYECCIÓN AUTOMÁTICA
 pcall(function()
     if queue_on_teleport then
         queue_on_teleport([[
@@ -67,7 +67,7 @@ TopBar.Parent = MainFrame
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -60, 1, 0)
 Title.Position = UDim2.new(0, 5, 0, 0)
-Title.Text = "Blade Hub [Master AFK]"
+Title.Text = "Blade Hub [Radar Total]"
 Title.TextColor3 = Color3.fromRGB(20, 20, 15)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 13
@@ -105,7 +105,7 @@ ContentContainer.Parent = MainFrame
 local RadarBox = Instance.new("TextBox")
 RadarBox.Size = UDim2.new(1, -20, 0, 60)
 RadarBox.Position = UDim2.new(0, 10, 0, 35)
-RadarBox.Text = "Radar Raids Optimizado..."
+RadarBox.Text = "Escaneando Radar..."
 RadarBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 RadarBox.Font = Enum.Font.Code
 RadarBox.TextSize = 10
@@ -254,13 +254,14 @@ local cachedPortal = nil
 local cachedButton = nil
 local isEnemyAlive = false
 
--- MOTOR 1: Radar Ultra Optimizado para Hordas y Raids
+-- MOTOR 1: Radar Abierto y Total (Muestra cualquier entidad con vida en pantalla)
 task.spawn(function()
     while true do
         pcall(function()
             local newTargets = {}
             local portalFound = nil
             local buttonFound = nil
+            local detectedNames = ""
             local char = player.Character
             isEnemyAlive = false
 
@@ -294,8 +295,13 @@ task.spawn(function()
                                 end
                             end
 
-                            if (isKnown and hum and hum.Health > 0) or isChest then
-                                if isKnown then isEnemyAlive = true end
+                            -- Si tiene vida y no está en ignorados, va al blanco
+                            if (hum and hum.Health > 0) or isChest then
+                                if hum and not isChest then 
+                                    isEnemyAlive = true 
+                                    -- Radar abierto: lista todos los mobs activos para que no se escape ninguno
+                                    detectedNames = detectedNames .. "[Mob] " .. obj.Name .. "\n"
+                                end
                                 local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("PrimaryPart") or obj:FindFirstChildOfClass("Part")
                                 if root then table.insert(newTargets, root) end
                             end
@@ -310,7 +316,6 @@ task.spawn(function()
                         end
                     end
 
-                    -- Búsqueda de portales, puertas y el círculo/árbol de las raids
                     if getgenv().PixelBladeState.AutoNextZone then
                         if name:find("tree") or name:find("arbol") or name:find("circle") or name:find("spawn") or name:find("zone") or name:find("portal") or name:find("exit_door") or name:find("door") or name:find("next") then
                             if not portalFound then
@@ -324,6 +329,12 @@ task.spawn(function()
             cachedTargets = newTargets
             cachedPortal = portalFound
             cachedButton = buttonFound
+
+            if detectedNames ~= "" then
+                RadarBox.Text = "Detectados:\n" .. detectedNames
+            else
+                RadarBox.Text = "Radar en espera... (Limpiando)"
+            end
         end)
         task.wait(0.3)
     end
@@ -386,7 +397,7 @@ task.spawn(function()
     end
 end)
 
--- MOTOR 3: Combate Fluido Anti-Hordas (Teletransporte ultra rápido al objetivo más cercano) y Transiciones
+-- MOTOR 3: Combate Fluido Anti-Hordas y Transiciones
 task.spawn(function()
     while true do
         pcall(function()
@@ -398,7 +409,6 @@ task.spawn(function()
                     local bestTarget = nil
                     local minDistance = math.huge
                     
-                    -- Selecciona el enemigo más cercano de forma instantánea para barrer hordas sin trabarse
                     for _, root in ipairs(cachedTargets) do
                         if root and root.Parent then
                             local dist = (hrp.Position - root.Position).Magnitude
