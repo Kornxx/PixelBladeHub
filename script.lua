@@ -1,11 +1,10 @@
 --[[
-    Pixel Blade Hub - Debugging & Working Motors
+    Pixel Blade Hub - Inspector de Rutas (Para ver nombres reales en consola)
 ]]
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
-local VirtualInputManager = game:GetService("VirtualInputManager")
 local player = Players.LocalPlayer
 
 if CoreGui:FindFirstChild("PixelBladeFunctionalHub") then
@@ -13,9 +12,7 @@ if CoreGui:FindFirstChild("PixelBladeFunctionalHub") then
 end
 
 getgenv().PixelBladeState = {
-    AutoDungeon = false,
-    AutoRaid = false,
-    AutoFishing = false
+    InspectMap = false
 }
 
 local ScreenGui = Instance.new("ScreenGui")
@@ -23,8 +20,8 @@ ScreenGui.Name = "PixelBladeFunctionalHub"
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 200, 0, 210)
-MainFrame.Position = UDim2.new(0.5, -100, 0.5, -105)
+MainFrame.Size = UDim2.new(0, 200, 0, 140)
+MainFrame.Position = UDim2.new(0.5, -100, 0.5, -70)
 MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 35)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -39,56 +36,34 @@ TopBar.Parent = MainFrame
 
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -30, 1, 0)
-Title.Text = "Pixel Blade Hub [Debug]"
+Title.Text = "Inspector de Rutas"
 Title.TextColor3 = Color3.fromRGB(20, 20, 15)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 14
 Title.BackgroundTransparency = 1
 Title.Parent = TopBar
 
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 30, 1, 0)
-CloseBtn.Position = UDim2.new(1, -30, 0, 0)
-CloseBtn.Text = "X"
-CloseBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
-CloseBtn.Font = Enum.Font.SourceSansBold
-CloseBtn.TextSize = 14
-CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 200, 180)
-CloseBtn.BorderSizePixel = 0
-CloseBtn.Parent = TopBar
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Size = UDim2.new(1, -20, 0, 35)
+ToggleBtn.Position = UDim2.new(0, 10, 0, 45)
+ToggleBtn.Text = "Escanear Mapa: OFF"
+ToggleBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
+ToggleBtn.Font = Enum.Font.SourceSansBold
+ToggleBtn.TextSize = 12
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(245, 245, 220)
+ToggleBtn.BorderSizePixel = 0
+ToggleBtn.Parent = MainFrame
 
-local function CreateToggleButton(name, stateKey, positionY)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -20, 0, 35)
-    btn.Position = UDim2.new(0, 10, 0, positionY)
-    btn.Text = name .. ": OFF"
-    btn.TextColor3 = Color3.fromRGB(20, 20, 15)
-    btn.Font = Enum.Font.SourceSansBold
-    btn.TextSize = 13
-    btn.BackgroundColor3 = Color3.fromRGB(245, 245, 220)
-    btn.BorderSizePixel = 0
-    btn.Parent = MainFrame
-
-    btn.MouseButton1Click:Connect(function()
-        getgenv().PixelBladeState[stateKey] = not getgenv().PixelBladeState[stateKey]
-        if getgenv().PixelBladeState[stateKey] then
-            btn.Text = name .. ": ON"
-            btn.BackgroundColor3 = Color3.fromRGB(180, 220, 180)
-        else
-            btn.Text = name .. ": OFF"
-            btn.BackgroundColor3 = Color3.fromRGB(245, 245, 220)
-        end
-    end)
-end
-
-CreateToggleButton("Auto Dungeon", "AutoDungeon", 45)
-CreateToggleButton("Auto Raid", "AutoRaid", 90)
-CreateToggleButton("Auto Fishing", "AutoFishing", 135)
+ToggleBtn.MouseButton1Click:Connect(function()
+    getgenv().PixelBladeState.InspectMap = not getgenv().PixelBladeState.InspectMap
+    ToggleBtn.Text = "Escanear Mapa: " .. (getgenv().PixelBladeState.InspectMap and "ON" or "OFF")
+    ToggleBtn.BackgroundColor3 = getgenv().PixelBladeState.InspectMap and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
+end)
 
 local ExitBtn = Instance.new("TextButton")
 ExitBtn.Size = UDim2.new(1, -20, 0, 25)
-ExitBtn.Position = UDim2.new(0, 10, 0, 175)
-ExitBtn.Text = "Cerrar Hub"
+ExitBtn.Position = UDim2.new(0, 10, 0, 95)
+ExitBtn.Text = "Cerrar"
 ExitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 ExitBtn.Font = Enum.Font.SourceSansBold
 ExitBtn.TextSize = 12
@@ -100,60 +75,18 @@ ExitBtn.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
 
--- Buscador Inteligente con impresión en consola de Delta
-local function getNearestEnemy()
-    local nearest = nil
-    local shortestDist = math.huge
-    local char = player.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
-    local hrp = char.HumanoidRootPart
-
-    -- Escaneamos todo el Workspace para encontrar qué carpeta contiene a los monstruos vivos
-    for _, folder in ipairs(Workspace:GetChildren()) do
-        if folder:IsA("Folder") or folder:IsA("Model") then
-            for _, enemy in ipairs(folder:GetChildren()) do
-                local enemyRoot = enemy:FindFirstChild("HumanoidRootPart") or enemy:FindFirstChild("Head") or enemy:FindFirstChild("RootPart")
-                local hum = enemy:FindFirstChildOfClass("Humanoid")
-                if enemyRoot and hum and hum.Health > 0 and enemy ~= char then
-                    local dist = (hrp.Position - enemyRoot.Position).Magnitude
-                    if dist < shortestDist then
-                        shortestDist = dist
-                        nearest = enemyRoot
-                    end
-                end
-            end
-        end
-    end
-    return nearest
-end
-
+-- Loop de inspección que escribe en la Delta Console
 task.spawn(function()
     while true do
-        pcall(function()
-            local char = player.Character
-            if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-            local hrp = char.HumanoidRootPart
-
-            if getgenv().PixelBladeState.AutoDungeon or getgenv().PixelBladeState.AutoRaid then
-                local target = getNearestEnemy()
-                if target then
-                    print("[Pixel Blade] ¡Enemigo detectado! Teletransportando...")
-                    hrp.CFrame = target.CFrame * CFrame.new(0, 0, 3)
-                    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-                    task.wait(0.05)
-                    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
-                end
+        if getgenv().PixelBladeState.InspectMap then
+            print("--- ESCANEANDO HIJOS DEL WORKSPACE ---")
+            for _, child in ipairs(Workspace:GetChildren()) do
+                print("Nombre: " .. child.Name .. " | Clase: " .. child.ClassName)
             end
-
-            if getgenv().PixelBladeState.AutoFishing then
-                VirtualInputManager:SendMouseButtonEvent(200, 200, 0, true, game, 1)
-                task.wait(0.1)
-                VirtualInputManager:SendMouseButtonEvent(200, 200, 0, false, game, 1)
-                task.wait(1.5)
-            end
-        end)
-        task.wait(0.2)
+            print("---------------------------------------")
+        end
+        task.wait(3)
     end
 end)
 
-print("[Pixel Blade] Hub actualizado con buscador universal de entidades.")
+print("[Inspector] Script cargado. Activa el botón para ver rutas en la consola.")
