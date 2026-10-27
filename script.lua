@@ -1,19 +1,17 @@
 --[[
-    Pixel Blade Hub - Definitivo (HUD Fijo + Auto-Rejoin + Guardado de Config + Anti-Aliados)
+    Pixel Blade Hub - Definitivo (Filtro Inteligente Anti-Aliados por Distancia y Dueño)
 ]]
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
 local VirtualInputManager = game:GetService("VirtualInputManager")
-local TeleportService = game:GetService("TeleportService")
 local player = Players.LocalPlayer
 
 if CoreGui:FindFirstChild("PixelBladeSmartHub") then
     CoreGui.PixelBladeSmartHub:Destroy()
 end
 
--- SISTEMA DE MEMORIA PERSISTENTE (Mantiene tu configuración tras el rejoin)
 if not getgenv().PixelBladeState then
     getgenv().PixelBladeState = {
         AutoFarm = false,
@@ -24,7 +22,6 @@ if not getgenv().PixelBladeState then
     }
 end
 
--- AUTO-REJOIN Y AUTO-EJECUCIÓN AL CAMBIAR DE ZONA/SERVIDOR
 pcall(function()
     if queue_on_teleport then
         queue_on_teleport([[
@@ -34,23 +31,22 @@ pcall(function()
     end
 end)
 
--- Lista de objetivos confirmados
 local targetMobs = {
     "zombie", "archer", "mortar", "ghoul", "lumberjack", 
     "cannon_goblin", "mage", "giant", "undead", "skeleton"
 }
 local chestNames = {"chest", "crate"}
 
--- Lista Negra para ignorar a tu aliado invocable (necromancer)
+-- Lista Negra para ignorar aliados, mascotas y cofres negros
 local ignoreMobs = {
-    "necromancer", "tutorial_clyde", "ally", "summon", "pet", "familiar"
+    "necromancer", "tutorial_clyde", "ally", "summon", "pet", "familiar", 
+    "black_chest", "locked", "key_chest", "boss_chest"
 }
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "PixelBladeSmartHub"
 ScreenGui.Parent = CoreGui
 
--- HUD FIJO Y CENTRADO (Sin bugs de arrastre)
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 240, 0, 330)
 MainFrame.Position = UDim2.new(0.5, -120, 0.5, -165)
@@ -69,7 +65,7 @@ TopBar.Parent = MainFrame
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -60, 1, 0)
 Title.Position = UDim2.new(0, 5, 0, 0)
-Title.Text = "Blade Hub [AFK]"
+Title.Text = "Blade Hub [Smart Filter]"
 Title.TextColor3 = Color3.fromRGB(20, 20, 15)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 13
@@ -118,7 +114,6 @@ RadarBox.BackgroundColor3 = Color3.fromRGB(50, 50, 45)
 RadarBox.BorderSizePixel = 0
 RadarBox.Parent = ContentContainer
 
--- BOTÓN AUTO-FARM (Con estado guardado)
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Size = UDim2.new(1, -20, 0, 30)
 ToggleBtn.Position = UDim2.new(0, 10, 0, 115)
@@ -136,7 +131,6 @@ ToggleBtn.MouseButton1Click:Connect(function()
     ToggleBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoFarm and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
 end)
 
--- BOTÓN AUTO-CARTAS (Con estado guardado)
 local CardBtn = Instance.new("TextButton")
 CardBtn.Size = UDim2.new(1, -20, 0, 30)
 CardBtn.Position = UDim2.new(0, 10, 0, 150)
@@ -154,7 +148,6 @@ CardBtn.MouseButton1Click:Connect(function()
     CardBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoCards and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
 end)
 
--- BOTÓN ROMPER COFRES (Con estado guardado)
 local ChestBtn = Instance.new("TextButton")
 ChestBtn.Size = UDim2.new(1, -20, 0, 30)
 ChestBtn.Position = UDim2.new(0, 10, 0, 185)
@@ -172,7 +165,6 @@ ChestBtn.MouseButton1Click:Connect(function()
     ChestBtn.BackgroundColor3 = getgenv().PixelBladeState.BreakObjects and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
 end)
 
--- BOTÓN AUTO-ULTI (Con estado guardado)
 local UltiBtn = Instance.new("TextButton")
 UltiBtn.Size = UDim2.new(1, -20, 0, 30)
 UltiBtn.Position = UDim2.new(0, 10, 0, 220)
@@ -190,7 +182,6 @@ UltiBtn.MouseButton1Click:Connect(function()
     UltiBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoUlti and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
 end)
 
--- BOTÓN AUTO-AVANZAR ZONA (Con estado guardado)
 local ZoneBtn = Instance.new("TextButton")
 ZoneBtn.Size = UDim2.new(1, -20, 0, 30)
 ZoneBtn.Position = UDim2.new(0, 10, 0, 255)
@@ -243,7 +234,7 @@ local cachedTargets = {}
 local cachedPortal = nil
 local isEnemyAlive = false
 
--- MOTOR 1: Radar y Escáner Profundo (Filtro Anti-Aliados)
+-- MOTOR 1: Radar con validación estricta de jerarquía (Ignora aliados invocados)
 task.spawn(function()
     while true do
         pcall(function()
@@ -254,41 +245,55 @@ task.spawn(function()
             isEnemyAlive = false
 
             for _, obj in ipairs(Workspace:GetDescendants()) do
-                if obj:IsA("Model") and obj ~= char then
+                if obj:IsA("Model") or obj:IsA("Part") then
                     local name = obj.Name:lower()
                     local hum = obj:FindFirstChildOfClass("Humanoid")
                     
-                    local isIgnored = false
-                    local isKnown = false
-                    local isChest = false
-                    
-                    if name:find("player") or name:find(player.Name:lower()) then isIgnored = true end
-                    for _, ig in ipairs(ignoreMobs) do
-                        if name:find(ig) then isIgnored = true break end
-                    end
-
-                    if not isIgnored then
-                        for _, mob in ipairs(targetMobs) do if name:find(mob) then isKnown = true break end end
-                        if getgenv().PixelBladeState.BreakObjects then
-                            for _, chest in ipairs(chestNames) do if name:find(chest) then isChest = true break end end
+                    if obj ~= char then
+                        local isIgnored = false
+                        local isKnown = false
+                        local isChest = false
+                        
+                        -- NUEVO: Si el objeto está dentro de tu propio personaje o modelo, es tu aliado/minion
+                        if obj:IsDescendantOf(char) then
+                            isIgnored = true
                         end
 
-                        if (isKnown and hum and hum.Health > 0) or isChest then
-                            if isKnown then isEnemyAlive = true end
-                            local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("PrimaryPart") or obj:FindFirstChildOfClass("Part")
-                            if root then table.insert(newTargets, root) end
+                        -- Filtro por nombres en lista negra (necromancer, cofres negros, etc.)
+                        if name:find("player") or name:find(player.Name:lower()) then isIgnored = true end
+                        for _, ig in ipairs(ignoreMobs) do
+                            if name:find(ig) then isIgnored = true break end
                         end
 
-                        if hum and hum.Health > 0 and not isKnown then
-                            detected = detected .. "[Mob] " .. obj.Name .. "\n"
+                        if not isIgnored then
+                            for _, mob in ipairs(targetMobs) do if name:find(mob) then isKnown = true break end end
+                            
+                            if getgenv().PixelBladeState.BreakObjects then
+                                for _, chest in ipairs(chestNames) do 
+                                    if name:find(chest) and not name:find("black") and not name:find("key") and not name:find("locked") then 
+                                        isChest = true 
+                                        break 
+                                    end 
+                                end
+                            end
+
+                            if (isKnown and hum and hum.Health > 0) or isChest then
+                                if isKnown then isEnemyAlive = true end
+                                local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("PrimaryPart") or obj:FindFirstChildOfClass("Part")
+                                if root then table.insert(newTargets, root) end
+                            end
+
+                            if hum and hum.Health > 0 and not isKnown and not isIgnored then
+                                detected = detected .. "[Mob] " .. obj.Name .. "\n"
+                            end
                         end
                     end
 
                     if getgenv().PixelBladeState.AutoNextZone then
-                        if name:find("portal") or name:find("door") or name:find("zone") or name:find("gate") or name:find("teleport") or name:find("next") then
+                        if name:find("exit_door") or name:find("portal") or name:find("door") or name:find("next") then
                             detected = detected .. "[Portal] " .. obj.Name .. "\n"
                             if not portalFound then
-                                portalFound = obj:FindFirstChildOfClass("Part") or (obj:IsA("Part") and obj)
+                                portalFound = obj:IsA("Part") and obj or obj:FindFirstChildOfClass("Part") or obj:FindFirstChild("PrimaryPart")
                             end
                         end
                     end
@@ -314,13 +319,22 @@ task.spawn(function()
         pcall(function()
             if getgenv().PixelBladeState.AutoCards then
                 for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
-                    if gui:IsA("TextButton") and (gui.Text:lower():find("elegir") or gui.Text:lower():find("select")) then
-                        VirtualInputManager:SendMouseButtonEvent(gui.AbsolutePosition.X + gui.AbsoluteSize.X/2, gui.AbsolutePosition.Y + gui.AbsoluteSize.Y/2, 0, true, game, 1)
-                        task.wait(0.05)
-                        VirtualInputManager:SendMouseButtonEvent(gui.AbsolutePosition.X + gui.AbsolutePosition.Y + gui.AbsoluteSize.Y/2, 0, false, game, 1)
+                    if gui:IsA("TextButton") and gui.Visible then
+                        if gui.Text:upper():find("ELEGIR") or gui.Name:lower():find("elegir") then
+                            local absPos = gui.AbsolutePosition
+                            local absSize = gui.AbsoluteSize
+                            if absPos.X > 0 and absSize.X > 0 then
+                                for _, conn in ipairs(getconnections(gui.MouseButton1Click)) do conn:Fire() end
+                                for _, conn in ipairs(getconnections(gui.Activated)) do conn:Fire() end
+                                VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 1)
+                                task.wait(0.05)
+                                VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, false, game, 1)
+                            end
+                        end
                     end
                 end
             end
+
             if getgenv().PixelBladeState.AutoUlti and getgenv().PixelBladeState.AutoFarm and isEnemyAlive then
                 VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
                 task.wait(0.05)
@@ -333,7 +347,7 @@ task.spawn(function()
                 VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
             end
         end)
-        task.wait(0.5)
+        task.wait(0.4)
     end
 end)
 
