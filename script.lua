@@ -1,11 +1,12 @@
 --[[
-    Pixel Blade Hub - Versión Definitiva Raids (Árbol de Oleadas + Cartas Reparadas + Anti-Vacío)
+    Pixel Blade Hub - Versión Definitiva Maestro (Raids Horda + Auto-Rejoin + Cartas Pro)
 ]]
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
 local VirtualInputManager = game:GetService("VirtualInputManager")
+local TeleportService = game:GetService("TeleportService")
 local player = Players.LocalPlayer
 
 if CoreGui:FindFirstChild("PixelBladeSmartHub") then
@@ -23,6 +24,7 @@ if not getgenv().PixelBladeState then
     }
 end
 
+-- SISTEMA DE AUTO-REJOIN Y REINYECCIÓN AUTOMÁTICA TRAS TERMINAR RAID / CAMBIAR DE ZONA
 pcall(function()
     if queue_on_teleport then
         queue_on_teleport([[
@@ -65,7 +67,7 @@ TopBar.Parent = MainFrame
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -60, 1, 0)
 Title.Position = UDim2.new(0, 5, 0, 0)
-Title.Text = "Blade Hub [Raids & Cards]"
+Title.Text = "Blade Hub [Master AFK]"
 Title.TextColor3 = Color3.fromRGB(20, 20, 15)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 13
@@ -103,7 +105,7 @@ ContentContainer.Parent = MainFrame
 local RadarBox = Instance.new("TextBox")
 RadarBox.Size = UDim2.new(1, -20, 0, 60)
 RadarBox.Position = UDim2.new(0, 10, 0, 35)
-RadarBox.Text = "Radar Raids Activo..."
+RadarBox.Text = "Radar Raids Optimizado..."
 RadarBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 RadarBox.Font = Enum.Font.Code
 RadarBox.TextSize = 10
@@ -252,14 +254,13 @@ local cachedPortal = nil
 local cachedButton = nil
 local isEnemyAlive = false
 
--- MOTOR 1: Radar con soporte para Árbol de Raids y Puertas de Oleadas
+-- MOTOR 1: Radar Ultra Optimizado para Hordas y Raids
 task.spawn(function()
     while true do
         pcall(function()
             local newTargets = {}
             local portalFound = nil
             local buttonFound = nil
-            local detected = ""
             local char = player.Character
             isEnemyAlive = false
 
@@ -299,7 +300,6 @@ task.spawn(function()
                                 if root then table.insert(newTargets, root) end
                             end
 
-                            -- Botones de jefes
                             if getgenv().PixelBladeState.AutoButtons then
                                 if (name:find("button") or name:find("switch") or name:find("lever") or name:find("mechanism")) and not name:find("chest") and not name:find("black") then
                                     if not buttonFound then
@@ -310,9 +310,9 @@ task.spawn(function()
                         end
                     end
 
-                    -- Detección de portales, puertas y el Árbol especial de las Raids (oleadas)
+                    -- Búsqueda de portales, puertas y el círculo/árbol de las raids
                     if getgenv().PixelBladeState.AutoNextZone then
-                        if name:find("exit_door") or name:find("portal") or name:find("door") or name:find("next") or name:find("tree") or name:find("arbol") or name:find("wave") then
+                        if name:find("tree") or name:find("arbol") or name:find("circle") or name:find("spawn") or name:find("zone") or name:find("portal") or name:find("exit_door") or name:find("door") or name:find("next") then
                             if not portalFound then
                                 portalFound = obj:IsA("Part") and obj or obj:FindFirstChildOfClass("Part") or obj:FindFirstChild("PrimaryPart")
                             end
@@ -325,33 +325,44 @@ task.spawn(function()
             cachedPortal = portalFound
             cachedButton = buttonFound
         end)
-        task.wait(0.5)
+        task.wait(0.3)
     end
 end)
 
--- MOTOR 2: Auto Cartas Reparado (Escaneo total de cualquier opción en pantalla y selección aleatoria)
+-- MOTOR 2: Auto-Cartas Inteligente con Prioridad Absoluta (Llama y Espíritus)
 task.spawn(function()
     while true do
         pcall(function()
             if getgenv().PixelBladeState.AutoCards then
-                local foundCards = {}
+                local priorityCard = nil
+                local anyCard = nil
+                
                 for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
                     if gui:IsA("TextButton") and gui.Visible then
-                        local t = gui.Text:upper()
-                        if t:find("ELEGIR") or t:find("SELECT") or gui.Name:lower():find("elegir") or gui.Name:lower():find("card") then
-                            table.insert(foundCards, gui)
+                        local parentModel = gui.Parent
+                        local cardText = ""
+                        for _, sub in ipairs(parentModel:GetDescendants()) do
+                            if sub:IsA("TextLabel") or sub:IsA("TextBox") then
+                                cardText = cardText .. " " .. sub.Text:lower()
+                            end
+                        end
+                        cardText = cardText .. " " .. gui.Text:lower()
+
+                        if cardText:find("llama") or cardText:find("flame") or cardText:find("espiritus") or cardText:find("furia") or cardText:find("spirit") then
+                            priorityCard = gui
+                        else
+                            anyCard = gui
                         end
                     end
                 end
                 
-                -- Si aparecen opciones de cartas, elige una de forma aleatoria para avanzar fluido
-                if #foundCards > 0 then
-                    local randomCard = foundCards[math.random(1, #foundCards)]
-                    local absPos = randomCard.AbsolutePosition
-                    local absSize = randomCard.AbsoluteSize
+                local targetCard = priorityCard or anyCard
+                if targetCard then
+                    local absPos = targetCard.AbsolutePosition
+                    local absSize = targetCard.AbsoluteSize
                     if absPos.X > 0 and absSize.X > 0 then
-                        for _, conn in ipairs(getconnections(randomCard.MouseButton1Click)) do conn:Fire() end
-                        for _, conn in ipairs(getconnections(randomCard.Activated)) do conn:Fire() end
+                        for _, conn in ipairs(getconnections(targetCard.MouseButton1Click)) do conn:Fire() end
+                        for _, conn in ipairs(getconnections(targetCard.Activated)) do conn:Fire() end
                         VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 1)
                         task.wait(0.05)
                         VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, false, game, 1)
@@ -361,21 +372,21 @@ task.spawn(function()
 
             if getgenv().PixelBladeState.AutoUlti and getgenv().PixelBladeState.AutoFarm and isEnemyAlive then
                 VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
-                task.wait(0.03)
+                task.wait(0.02)
                 VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Q, false, game)
                 VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-                task.wait(0.03)
+                task.wait(0.02)
                 VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
                 VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
-                task.wait(0.03)
+                task.wait(0.02)
                 VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
             end
         end)
-        task.wait(0.3)
+        task.wait(0.2)
     end
 end)
 
--- MOTOR 3: Combate Anti-Vacío, Limpieza de Oleadas y Activación de Botones
+-- MOTOR 3: Combate Fluido Anti-Hordas (Teletransporte ultra rápido al objetivo más cercano) y Transiciones
 task.spawn(function()
     while true do
         pcall(function()
@@ -387,6 +398,7 @@ task.spawn(function()
                     local bestTarget = nil
                     local minDistance = math.huge
                     
+                    -- Selecciona el enemigo más cercano de forma instantánea para barrer hordas sin trabarse
                     for _, root in ipairs(cachedTargets) do
                         if root and root.Parent then
                             local dist = (hrp.Position - root.Position).Magnitude
@@ -398,9 +410,9 @@ task.spawn(function()
                     end
                     
                     if bestTarget then
-                        hrp.CFrame = bestTarget.CFrame * CFrame.new(0, 2, 3)
+                        hrp.CFrame = bestTarget.CFrame * CFrame.new(0, 2, 2.5)
                         VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-                        task.wait(0.03)
+                        task.wait(0.02)
                         VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
                     end
                 
@@ -417,6 +429,6 @@ task.spawn(function()
                 end
             end
         end)
-        task.wait(0.15)
+        task.wait(0.08)
     end
 end)
