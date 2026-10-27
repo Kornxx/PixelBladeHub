@@ -1,5 +1,5 @@
 --[[
-    Pixel Blade Hub - Auto Farm + Radar Dinámico de Nuevos Mobs
+    Pixel Blade Hub - Auto Farm + Auto Cartas + Radar
 ]]
 
 local Players = game:GetService("Players")
@@ -8,17 +8,18 @@ local CoreGui = game:GetService("CoreGui")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local player = Players.LocalPlayer
 
-if CoreGui:FindFirstChild("PixelBladeDynamicHub") then
-    CoreGui.PixelBladeDynamicHub:Destroy()
+if CoreGui:FindFirstChild("PixelBladeSmartHub") then
+    CoreGui.PixelBladeSmartHub:Destroy()
 end
 
 getgenv().PixelBladeState = {
     AutoFarm = false,
+    AutoCards = true,
     BreakObjects = true
 }
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "PixelBladeDynamicHub"
+ScreenGui.Name = "PixelBladeSmartHub"
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
@@ -38,18 +39,18 @@ TopBar.Parent = MainFrame
 
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -30, 1, 0)
-Title.Text = "Pixel Blade Hub [Radar + Farm]"
+Title.Text = "Pixel Blade Hub [Smart]"
 Title.TextColor3 = Color3.fromRGB(20, 20, 15)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 13
 Title.BackgroundTransparency = 1
 Title.Parent = TopBar
 
--- Caja de texto para ver en vivo los enemigos que va descubriendo
+-- Caja del Radar de Mobs
 local RadarBox = Instance.new("TextBox")
-RadarBox.Size = UDim2.new(1, -20, 0, 80)
+RadarBox.Size = UDim2.new(1, -20, 0, 70)
 RadarBox.Position = UDim2.new(0, 10, 0, 38)
-RadarBox.Text = "Esperando enemigos nuevos..."
+RadarBox.Text = "Escaneando entidades..."
 RadarBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 RadarBox.Font = Enum.Font.Code
 RadarBox.TextSize = 10
@@ -61,8 +62,8 @@ RadarBox.BorderSizePixel = 0
 RadarBox.Parent = MainFrame
 
 local ToggleBtn = Instance.new("TextButton")
-ToggleBtn.Size = UDim2.new(1, -20, 0, 35)
-ToggleBtn.Position = UDim2.new(0, 10, 0, 125)
+ToggleBtn.Size = UDim2.new(1, -20, 0, 30)
+ToggleBtn.Position = UDim2.new(0, 10, 0, 115)
 ToggleBtn.Text = "Auto-Farm Mobs: OFF"
 ToggleBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
 ToggleBtn.Font = Enum.Font.SourceSansBold
@@ -77,9 +78,26 @@ ToggleBtn.MouseButton1Click:Connect(function()
     ToggleBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoFarm and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
 end)
 
+local CardBtn = Instance.new("TextButton")
+CardBtn.Size = UDim2.new(1, -20, 0, 30)
+CardBtn.Position = UDim2.new(0, 10, 0, 150)
+CardBtn.Text = "Auto-Cartas (Ventajas): ON"
+CardBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
+CardBtn.Font = Enum.Font.SourceSansBold
+CardBtn.TextSize = 12
+CardBtn.BackgroundColor3 = Color3.fromRGB(180, 220, 180)
+CardBtn.BorderSizePixel = 0
+CardBtn.Parent = MainFrame
+
+CardBtn.MouseButton1Click:Connect(function()
+    getgenv().PixelBladeState.AutoCards = not getgenv().PixelBladeState.AutoCards
+    CardBtn.Text = "Auto-Cartas (Ventajas): " .. (getgenv().PixelBladeState.AutoCards and "ON" or "OFF")
+    CardBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoCards and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
+end)
+
 local ChestBtn = Instance.new("TextButton")
-ChestBtn.Size = UDim2.new(1, -20, 0, 35)
-ChestBtn.Position = UDim2.new(0, 10, 0, 168)
+ChestBtn.Size = UDim2.new(1, -20, 0, 30)
+ChestBtn.Position = UDim2.new(0, 10, 0, 185)
 ChestBtn.Text = "Romper Cofres: ON"
 ChestBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
 ChestBtn.Font = Enum.Font.SourceSansBold
@@ -95,8 +113,8 @@ ChestBtn.MouseButton1Click:Connect(function()
 end)
 
 local ExitBtn = Instance.new("TextButton")
-ExitBtn.Size = UDim2.new(1, -20, 0, 30)
-ExitBtn.Position = UDim2.new(0, 10, 0, 215)
+ExitBtn.Size = UDim2.new(1, -20, 0, 25)
+ExitBtn.Position = UDim2.new(0, 10, 0, 222)
 ExitBtn.Text = "Cerrar Hub"
 ExitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 ExitBtn.Font = Enum.Font.SourceSansBold
@@ -109,7 +127,7 @@ ExitBtn.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
 
--- Buscador inteligente que ataca conocidos y detecta todo lo demás para el radar
+-- Buscador de enemigos y radar
 local function getBestTarget()
     local char = player.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
@@ -124,11 +142,10 @@ local function getBestTarget()
             local name = obj.Name:lower()
             local humanoid = obj:FindFirstChildOfClass("Humanoid")
             
-            -- Si tiene vida, es una entidad de combate potencial
-            if humanoid and humanoid.Health > 0 and name ~= "player" and not name:find("ishiro") then
+            if humanoid and humanoid.Health > 0 and name ~= "player" and not name:find("ishiro") and name ~= "tutorial_clyde" then
                 discoveredMobs = discoveredMobs .. obj.Name .. "\n"
 
-                -- Ataca si coincide con conocidos o si tiene barra de vida activa en combate
+                -- Enemigos conocidos + los nuevos que vayan saliendo
                 local isKnown = name:find("zombie") or name:find("archer") or name:find("mortar") or name:find("ghoul")
                 local isChest = getgenv().PixelBladeState.BreakObjects and (name:find("chest") or name:find("crate"))
 
@@ -146,7 +163,6 @@ local function getBestTarget()
         end
     end
 
-    -- Actualiza el cuadro de texto del radar con los mobs que vaya encontrando
     if discoveredMobs ~= "" then
         RadarBox.Text = "Detectados:\n" .. discoveredMobs
     else
@@ -156,10 +172,28 @@ local function getBestTarget()
     return bestTarget
 end
 
--- Motor de ataque continuo
+-- Motor principal (Combate + Auto Cartas)
 task.spawn(function()
     while true do
-        pcall(function()
+        pcall(function
+            -- 1. Auto-Cartas (Busca botones de elegir ventaja en pantalla)
+            if getgenv().PixelBladeState.AutoCards then
+                for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
+                    if gui:IsA("TextButton") and (gui.Text:lower():find("elegir") or gui.Text:lower():find("select")) then
+                        -- Simula clic en la ventaja para seleccionarla al instante
+                        local vim = VirtualInputManager
+                        -- Dispara evento de clic táctil o de mouse directo en la posición del botón
+                        local absPos = gui.AbsolutePosition
+                        local absSize = gui.AbsoluteSize
+                        vim:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 1)
+                        task.wait(0.05)
+                        vim:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, false, game, 1)
+                        task.wait(1)
+                    end
+                end
+            end
+
+            -- 2. Auto-Farm de Mobs
             if getgenv().PixelBladeState.AutoFarm then
                 local char = player.Character
                 if char and char:FindFirstChild("HumanoidRootPart") then
@@ -175,6 +209,6 @@ task.spawn(function()
                 end
             end
         end)
-        task.wait(0.15)
+        task.wait(0.2)
     end
 end)
