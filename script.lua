@@ -1,5 +1,5 @@
 --[[
-    Pixel Blade Hub - Inspector de Rutas (Para ver nombres reales en consola)
+    Pixel Blade Hub - Inspector Visual en Pantalla
 ]]
 
 local Players = game:GetService("Players")
@@ -7,8 +7,8 @@ local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
 local player = Players.LocalPlayer
 
-if CoreGui:FindFirstChild("PixelBladeFunctionalHub") then
-    CoreGui.PixelBladeFunctionalHub:Destroy()
+if CoreGui:FindFirstChild("PixelBladeVisualInspector") then
+    CoreGui.PixelBladeVisualInspector:Destroy()
 end
 
 getgenv().PixelBladeState = {
@@ -16,12 +16,12 @@ getgenv().PixelBladeState = {
 }
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "PixelBladeFunctionalHub"
+ScreenGui.Name = "PixelBladeVisualInspector"
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 200, 0, 140)
-MainFrame.Position = UDim2.new(0.5, -100, 0.5, -70)
+MainFrame.Size = UDim2.new(0, 220, 0, 180)
+MainFrame.Position = UDim2.new(0.5, -110, 0.5, -90)
 MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 35)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -36,17 +36,30 @@ TopBar.Parent = MainFrame
 
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -30, 1, 0)
-Title.Text = "Inspector de Rutas"
+Title.Text = "Inspector Visual de Mapa"
 Title.TextColor3 = Color3.fromRGB(20, 20, 15)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 14
 Title.BackgroundTransparency = 1
 Title.Parent = TopBar
 
+-- Etiqueta donde mostraremos el resultado DIRECTO en la pantallita del HUD
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(1, -20, 0, 40)
+StatusLabel.Position = UDim2.new(0, 10, 0, 40)
+StatusLabel.Text = "Estado: Inactivo"
+StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+StatusLabel.Font = Enum.Font.SourceSans
+StatusLabel.TextSize = 11
+StatusLabel.TextWrapped = true
+StatusLabel.BackgroundColor3 = Color3.fromRGB(60, 60, 55)
+StatusLabel.BorderSizePixel = 0
+StatusLabel.Parent = MainFrame
+
 local ToggleBtn = Instance.new("TextButton")
-ToggleBtn.Size = UDim2.new(1, -20, 0, 35)
-ToggleBtn.Position = UDim2.new(0, 10, 0, 45)
-ToggleBtn.Text = "Escanear Mapa: OFF"
+ToggleBtn.Size = UDim2.new(1, -20, 0, 30)
+ToggleBtn.Position = UDim2.new(0, 10, 0, 90)
+ToggleBtn.Text = "Escanear Workspace: OFF"
 ToggleBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
 ToggleBtn.Font = Enum.Font.SourceSansBold
 ToggleBtn.TextSize = 12
@@ -56,13 +69,13 @@ ToggleBtn.Parent = MainFrame
 
 ToggleBtn.MouseButton1Click:Connect(function()
     getgenv().PixelBladeState.InspectMap = not getgenv().PixelBladeState.InspectMap
-    ToggleBtn.Text = "Escanear Mapa: " .. (getgenv().PixelBladeState.InspectMap and "ON" or "OFF")
+    ToggleBtn.Text = "Escanear Workspace: " .. (getgenv().PixelBladeState.InspectMap and "ON" or "OFF")
     ToggleBtn.BackgroundColor3 = getgenv().PixelBladeState.InspectMap and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
 end)
 
 local ExitBtn = Instance.new("TextButton")
 ExitBtn.Size = UDim2.new(1, -20, 0, 25)
-ExitBtn.Position = UDim2.new(0, 10, 0, 95)
+ExitBtn.Position = UDim2.new(0, 10, 0, 135)
 ExitBtn.Text = "Cerrar"
 ExitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 ExitBtn.Font = Enum.Font.SourceSansBold
@@ -75,18 +88,24 @@ ExitBtn.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
 
--- Loop de inspección que escribe en la Delta Console
+-- Loop que lee las carpetas y cambia el texto DIRECTO en el menú flotante
 task.spawn(function()
     while true do
         if getgenv().PixelBladeState.InspectMap then
-            print("--- ESCANEANDO HIJOS DEL WORKSPACE ---")
+            local foundNames = ""
             for _, child in ipairs(Workspace:GetChildren()) do
-                print("Nombre: " .. child.Name .. " | Clase: " .. child.ClassName)
+                if child:IsA("Folder") or child:IsA("Model") then
+                    foundNames = foundNames .. child.Name .. ", "
+                end
             end
-            print("---------------------------------------")
+            if foundNames ~= "" then
+                StatusLabel.Text = "Carpetas: " .. foundNames
+            else
+                StatusLabel.Text = "Estado: No se encontraron carpetas"
+            end
+        else
+            StatusLabel.Text = "Estado: Inactivo"
         end
-        task.wait(3)
+        task.wait(1)
     end
 end)
-
-print("[Inspector] Script cargado. Activa el botón para ver rutas en la consola.")
