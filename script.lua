@@ -1,5 +1,5 @@
 --[[
-    Pixel Blade Hub - Max Opt (Sin Radar UI + Auto-Caza Silenciosa + AFK Infinito)
+    Pixel Blade Hub - Versión Final (Solo Mobs Oficiales + Cero Lag + Cuidado de Decoraciones)
 ]]
 
 local Players = game:GetService("Players")
@@ -35,6 +35,7 @@ pcall(function()
     end
 end)
 
+-- LISTA OFICIAL ESTRICTA: Solo atacará a estos nombres exactos y conocidos
 local targetMobs = {
     "zombie", "archer", "mortar", "ghoul", "lumberjack", 
     "cannon_goblin", "mage", "giant", "undead", "skeleton",
@@ -43,7 +44,7 @@ local targetMobs = {
 local chestNames = {"chest", "crate"}
 local ignoreMobs = {
     "necromancer", "tutorial_clyde", "ally", "summon", "pet", "familiar", 
-    "black_chest", "locked", "key_chest", "boss_chest", "key", "black"
+    "black_chest", "locked", "key_chest", "boss_chest", "key", "black", "decoration", "prop", "flora", "tree"
 }
 
 -- INTERFAZ GRÁFICA (HUD) COMPACTA Y LIGERA
@@ -53,7 +54,7 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 240, 0, 310) -- Interfaz más pequeña
+MainFrame.Size = UDim2.new(0, 240, 0, 310)
 MainFrame.Position = UDim2.new(0.5, -120, 0.5, -155)
 MainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 32)
 MainFrame.BorderSizePixel = 0
@@ -70,7 +71,7 @@ TopBar.Parent = MainFrame
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -60, 1, 0)
 Title.Position = UDim2.new(0, 5, 0, 0)
-Title.Text = "Blade Hub [Ultra Ligero]"
+Title.Text = "Blade Hub [Estricto]"
 Title.TextColor3 = Color3.fromRGB(20, 20, 15)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 14
@@ -166,7 +167,6 @@ local colorOn = Color3.fromRGB(180, 220, 180)
 local colorOff = Color3.fromRGB(245, 245, 220)
 local raidColorOn = Color3.fromRGB(200, 180, 220) 
 
--- Posiciones ajustadas hacia arriba al eliminar los radares
 local D_Farm = createButton(DungeonTab, "Auto-Farm Mobs", 15, "AutoFarm", colorOn, colorOff)
 local D_Cards = createButton(DungeonTab, "Auto-Cartas (Llama/Furia)", 45, "AutoCards", colorOn, colorOff)
 local D_Ulti = createButton(DungeonTab, "Auto-Habilidades (Ulti)", 75, "AutoUlti", colorOn, colorOff)
@@ -273,7 +273,7 @@ local cachedTree = nil
 local cachedButton = nil
 local isEnemyAlive = false
 
--- MOTOR 1: Escáner de Entorno Ultra Ligero (Libre de UI y Strings)
+-- MOTOR 1: Escáner Estricto (Solo Mobs de la lista oficial, ignorando decoraciones y objetos fijos)
 task.spawn(function()
     while true do
         pcall(function()
@@ -291,16 +291,26 @@ task.spawn(function()
                     
                     if obj ~= char then
                         local isIgnored = false
+                        local isKnown = false
                         local isChest = false
                         
                         if obj:IsDescendantOf(char) or name:find("player") or name:find(player.Name:lower()) then 
                             isIgnored = true 
                         end
+                        
                         for _, ig in ipairs(ignoreMobs) do
                             if name:find(ig) then isIgnored = true break end
                         end
 
                         if not isIgnored then
+                            -- Comprueba estrictamente si el nombre coincide con la lista oficial de enemigos
+                            for _, mob in ipairs(targetMobs) do 
+                                if name:find(mob) then 
+                                    isKnown = true 
+                                    break 
+                                end 
+                            end
+                            
                             if getgenv().PixelBladeState.BreakObjects then
                                 for _, chest in ipairs(chestNames) do 
                                     if name:find(chest) and not name:find("black") and not name:find("key") and not name:find("locked") then 
@@ -310,11 +320,9 @@ task.spawn(function()
                                 end
                             end
 
-                            -- Caza libre de strings: Ataca directamente todo lo que tenga vida
-                            if (hum and hum.Health > 0 and hum.MaxHealth > 1) or isChest then
-                                if hum and not isChest then 
-                                    isEnemyAlive = true 
-                                end
+                            -- Solo acepta al enemigo si está en la lista oficial de mobs o es un cofre real válido
+                            if (isKnown and hum and hum.Health > 0) or isChest then
+                                if isKnown then isEnemyAlive = true end
                                 local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("PrimaryPart") or obj:FindFirstChildOfClass("Part")
                                 if root then table.insert(newTargets, root) end
                             end
@@ -348,7 +356,7 @@ task.spawn(function()
             cachedTree = tFound
             cachedButton = bFound
         end)
-        task.wait(1.5)
+        task.wait(1.0)
     end
 end)
 
