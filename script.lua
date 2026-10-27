@@ -1,5 +1,5 @@
 --[[
-    Pixel Blade Hub - Ataque Clásico (Cero Lag) + Filtro Anti-Aliados
+    Pixel Blade Hub - Ataque Clásico (Cero Lag) + Anti-Aliados + Ulti
 ]]
 
 local Players = game:GetService("Players")
@@ -20,14 +20,14 @@ getgenv().PixelBladeState = {
     AutoNextZone = false
 }
 
--- Lista de objetivos
+-- Lista de objetivos confirmados
 local targetMobs = {
     "zombie", "archer", "mortar", "ghoul", "lumberjack", 
     "cannon_goblin", "mage", "giant", "undead", "skeleton"
 }
 local chestNames = {"chest", "crate"}
 
--- NUEVO: Lista Negra (Ignora aliados, mascotas o NPCs)
+-- Lista Negra (Ignora aliados, mascotas o NPCs como tu invocación)
 local ignoreMobs = {
     "necromancer", "tutorial_clyde", "ally", "summon", "pet", "familiar"
 }
