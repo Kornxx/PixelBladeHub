@@ -1,5 +1,5 @@
 --[[
-    Pixel Blade Hub - Código Maestro (Optimizado para Móvil + Auto-Caza de Jefes + AFK Infinito)
+    Pixel Blade Hub - Max Opt (Sin Radar UI + Auto-Caza Silenciosa + AFK Infinito)
 ]]
 
 local Players = game:GetService("Players")
@@ -46,15 +46,15 @@ local ignoreMobs = {
     "black_chest", "locked", "key_chest", "boss_chest", "key", "black"
 }
 
--- INTERFAZ GRÁFICA (HUD) LIGERA
+-- INTERFAZ GRÁFICA (HUD) COMPACTA Y LIGERA
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "PixelBladeSmartHub"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 240, 0, 395)
-MainFrame.Position = UDim2.new(0.5, -120, 0.5, -197)
+MainFrame.Size = UDim2.new(0, 240, 0, 310) -- Interfaz más pequeña
+MainFrame.Position = UDim2.new(0.5, -120, 0.5, -155)
 MainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 32)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = false
@@ -70,7 +70,7 @@ TopBar.Parent = MainFrame
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -60, 1, 0)
 Title.Position = UDim2.new(0, 5, 0, 0)
-Title.Text = "Blade Hub [Max Opt]"
+Title.Text = "Blade Hub [Ultra Ligero]"
 Title.TextColor3 = Color3.fromRGB(20, 20, 15)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 14
@@ -166,36 +166,20 @@ local colorOn = Color3.fromRGB(180, 220, 180)
 local colorOff = Color3.fromRGB(245, 245, 220)
 local raidColorOn = Color3.fromRGB(200, 180, 220) 
 
-local RadarDungeon = Instance.new("TextBox")
-RadarDungeon.Size = UDim2.new(1, -20, 0, 55)
-RadarDungeon.Position = UDim2.new(0, 10, 0, 5)
-RadarDungeon.Text = "Radar Optimizado (Esperando)..."
-RadarDungeon.TextColor3 = Color3.fromRGB(255, 255, 255)
-RadarDungeon.Font = Enum.Font.Code
-RadarDungeon.TextSize = 10
-RadarDungeon.TextWrapped = true
-RadarDungeon.ClearTextOnFocus = false
-RadarDungeon.MultiLine = true
-RadarDungeon.BackgroundColor3 = Color3.fromRGB(50, 50, 45)
-RadarDungeon.BorderSizePixel = 0
-RadarDungeon.Parent = DungeonTab
+-- Posiciones ajustadas hacia arriba al eliminar los radares
+local D_Farm = createButton(DungeonTab, "Auto-Farm Mobs", 15, "AutoFarm", colorOn, colorOff)
+local D_Cards = createButton(DungeonTab, "Auto-Cartas (Llama/Furia)", 45, "AutoCards", colorOn, colorOff)
+local D_Ulti = createButton(DungeonTab, "Auto-Habilidades (Ulti)", 75, "AutoUlti", colorOn, colorOff)
+local D_Chests = createButton(DungeonTab, "Romper Cofres", 105, "BreakObjects", colorOn, colorOff)
+local D_Zone = createButton(DungeonTab, "Auto-Avanzar (Portales)", 135, "AutoNextZone", colorOn, colorOff)
+local D_Boss = createButton(DungeonTab, "Auto-Botones (Jefes)", 165, "AutoButtons", colorOn, colorOff)
+local D_Continue = createButton(DungeonTab, "Auto-Seguir (Continuar)", 195, "AutoContinue", colorOn, colorOff)
 
-local D_Farm = createButton(DungeonTab, "Auto-Farm Mobs", 65, "AutoFarm", colorOn, colorOff)
-local D_Cards = createButton(DungeonTab, "Auto-Cartas (Llama/Furia)", 95, "AutoCards", colorOn, colorOff)
-local D_Ulti = createButton(DungeonTab, "Auto-Habilidades (Ulti)", 125, "AutoUlti", colorOn, colorOff)
-local D_Chests = createButton(DungeonTab, "Romper Cofres", 155, "BreakObjects", colorOn, colorOff)
-local D_Zone = createButton(DungeonTab, "Auto-Avanzar (Portales)", 185, "AutoNextZone", colorOn, colorOff)
-local D_Boss = createButton(DungeonTab, "Auto-Botones (Jefes)", 215, "AutoButtons", colorOn, colorOff)
-local D_Continue = createButton(DungeonTab, "Auto-Seguir (Continuar)", 245, "AutoContinue", colorOn, colorOff)
-
-local RadarRaid = RadarDungeon:Clone()
-RadarRaid.Parent = RaidTab
-
-local R_Farm = createButton(RaidTab, "Auto-Farm Raids", 65, "AutoFarm", raidColorOn, colorOff)
-local R_Cards = createButton(RaidTab, "Auto-Cartas (Llama/Furia)", 95, "AutoCards", raidColorOn, colorOff)
-local R_Ulti = createButton(RaidTab, "Auto-Habilidades (Ulti)", 125, "AutoUlti", raidColorOn, colorOff)
-local R_Tree = createButton(RaidTab, "Auto-Árbol (Sig. Oleada)", 155, "AutoTree", raidColorOn, colorOff)
-local R_Continue = createButton(RaidTab, "Auto-Seguir (Continuar)", 185, "AutoContinue", raidColorOn, colorOff)
+local R_Farm = createButton(RaidTab, "Auto-Farm Raids", 15, "AutoFarm", raidColorOn, colorOff)
+local R_Cards = createButton(RaidTab, "Auto-Cartas (Llama/Furia)", 45, "AutoCards", raidColorOn, colorOff)
+local R_Ulti = createButton(RaidTab, "Auto-Habilidades (Ulti)", 75, "AutoUlti", raidColorOn, colorOff)
+local R_Tree = createButton(RaidTab, "Auto-Árbol (Sig. Oleada)", 105, "AutoTree", raidColorOn, colorOff)
+local R_Continue = createButton(RaidTab, "Auto-Seguir (Continuar)", 135, "AutoContinue", raidColorOn, colorOff)
 
 local function syncButtons()
     D_Farm.Text = "Auto-Farm Mobs: " .. (getgenv().PixelBladeState.AutoFarm and "ON" or "OFF")
@@ -268,7 +252,7 @@ MinimizeBtn.MouseButton1Click:Connect(function()
         TabBar.Visible = false
         ExitBtn.Visible = false
     else
-        MainFrame.Size = UDim2.new(0, 240, 0, 395)
+        MainFrame.Size = UDim2.new(0, 240, 0, 310)
         MinimizeBtn.Text = "-"
         TabBar.Visible = true
         ExitBtn.Visible = true
@@ -289,7 +273,7 @@ local cachedTree = nil
 local cachedButton = nil
 local isEnemyAlive = false
 
--- MOTOR 1: Radar Ligero y Asíncrono (Evita Lag en Móvil, se ejecuta cada 1.5s)
+-- MOTOR 1: Escáner de Entorno Ultra Ligero (Libre de UI y Strings)
 task.spawn(function()
     while true do
         pcall(function()
@@ -297,7 +281,6 @@ task.spawn(function()
             local pFound = nil
             local tFound = nil
             local bFound = nil
-            local unknownNames = {}
             local char = player.Character
             isEnemyAlive = false
 
@@ -327,15 +310,10 @@ task.spawn(function()
                                 end
                             end
 
-                            -- Auto-Caza Absoluta: Si tiene vida y NO es un aliado/cofre negro, lo ataca obligatoriamente
+                            -- Caza libre de strings: Ataca directamente todo lo que tenga vida
                             if (hum and hum.Health > 0 and hum.MaxHealth > 1) or isChest then
                                 if hum and not isChest then 
                                     isEnemyAlive = true 
-                                    local isKnown = false
-                                    for _, mob in ipairs(targetMobs) do if name:find(mob) then isKnown = true break end end
-                                    if not isKnown and not unknownNames[obj.Name] then 
-                                        unknownNames[obj.Name] = true 
-                                    end
                                 end
                                 local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("PrimaryPart") or obj:FindFirstChildOfClass("Part")
                                 if root then table.insert(newTargets, root) end
@@ -369,21 +347,12 @@ task.spawn(function()
             cachedPortal = pFound
             cachedTree = tFound
             cachedButton = bFound
-
-            local unknownList = ""
-            for mobName, _ in pairs(unknownNames) do
-                unknownList = unknownList .. "[Auto-Cazado] " .. mobName .. "\n"
-            end
-
-            local radarText = unknownList ~= "" and "Nuevos Eliminados:\n" .. unknownList or "Radar limpio (Sin desconocidos)"
-            RadarDungeon.Text = radarText
-            RadarRaid.Text = radarText
         end)
-        task.wait(1.5) -- Aumentado a 1.5s para no quemar el Snapdragon del Redmi
+        task.wait(1.5)
     end
 end)
 
--- MOTOR 2: Escáner UI Optimizado (1 segundo de intervalo)
+-- MOTOR 2: UI Scanner (Auto-Seguir, Auto-Cartas)
 task.spawn(function()
     while true do
         pcall(function()
@@ -444,11 +413,11 @@ task.spawn(function()
                 end
             end
         end)
-        task.wait(1) -- Escaneo relajado para estabilizar FPS
+        task.wait(1)
     end
 end)
 
--- MOTOR 3: Combate Anti-Lag (Control de Distancia y Clicks Estabilizados)
+-- MOTOR 3: Combate Termo-Estable
 task.spawn(function()
     while true do
         pcall(function()
@@ -471,7 +440,6 @@ task.spawn(function()
                     end
                     
                     if bestTarget then
-                        -- SISTEMA ANTI-LAG: Si ya está cerca, no teletransporta, solo gira para atacar sin sacudir la cámara
                         if minDistance > 4 then
                             hrp.CFrame = bestTarget.CFrame * CFrame.new(0, 0, 3)
                         else
@@ -479,7 +447,7 @@ task.spawn(function()
                         end
                         
                         VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-                        task.wait(0.1) -- Clic respetuoso con el procesador móvil
+                        task.wait(0.1)
                         VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
                         
                         if getgenv().PixelBladeState.AutoUlti then
