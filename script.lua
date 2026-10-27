@@ -1,5 +1,5 @@
 --[[
-    Pixel Blade Hub - Versión 100% Limpia (Anti-Aliados Real)
+    Pixel Blade Hub - Versión Final Definitiva (AFK & Clean)
 ]]
 
 local Players = game:GetService("Players")
@@ -28,7 +28,7 @@ local targetMobs = {
 }
 local chestNames = {"chest", "crate"}
 
--- LISTA NEGRA ESTRICTA: El necromancer (aliado) y cualquier invocación queda fuera por completo
+-- Lista negra limpia enfocada solo en el necromancer y cofres especiales
 local ignoreMobs = {
     "necromancer", "tutorial_clyde", "ally", "summon", "pet", "familiar", 
     "black_chest", "locked", "key_chest", "boss_chest"
@@ -56,7 +56,7 @@ TopBar.Parent = MainFrame
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -60, 1, 0)
 Title.Position = UDim2.new(0, 5, 0, 0)
-Title.Text = "Blade Hub [Clean v2]"
+Title.Text = "Blade Hub [Final]"
 Title.TextColor3 = Color3.fromRGB(20, 20, 15)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 13
@@ -94,7 +94,7 @@ ContentContainer.Parent = MainFrame
 local RadarBox = Instance.new("TextBox")
 RadarBox.Size = UDim2.new(1, -20, 0, 70)
 RadarBox.Position = UDim2.new(0, 10, 0, 38)
-RadarBox.Text = "Radar Limpio..."
+RadarBox.Text = "Radar Activo..."
 RadarBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 RadarBox.Font = Enum.Font.Code
 RadarBox.TextSize = 10
@@ -225,7 +225,7 @@ local cachedTargets = {}
 local cachedPortal = nil
 local isEnemyAlive = false
 
--- MOTOR 1: Radar con validación estricta anti-aliados y anti-necromancer
+-- MOTOR 1: Radar y Escáner optimizado
 task.spawn(function()
     while true do
         pcall(function()
@@ -245,7 +245,6 @@ task.spawn(function()
                         local isKnown = false
                         local isChest = false
                         
-                        -- Ignorar si pertenece al jugador o está en la lista negra (necromancer, etc.)
                         if obj:IsDescendantOf(char) or name:find("player") or name:find(player.Name:lower()) then 
                             isIgnored = true 
                         end
@@ -340,7 +339,7 @@ task.spawn(function()
     end
 end)
 
--- MOTOR 3: Combate Clásico
+-- MOTOR 3: Combate Clásico y Auto-Avanzar
 task.spawn(function()
     while true do
         pcall(function()
