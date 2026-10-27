@@ -1,5 +1,5 @@
 --[[
-    Pixel Blade Hub - UI Moderna + Radar Raid Silencioso + Cartas Random
+    Pixel Blade Hub - UI Moderna + Auto-Cartas 100% Español + Círculo Raid
 ]]
 
 local Players = game:GetService("Players")
@@ -54,7 +54,7 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 250, 0, 395) -- Ligeramente más alto para albergar el mini radar
+MainFrame.Size = UDim2.new(0, 250, 0, 395)
 MainFrame.Position = UDim2.new(0.5, -125, 0.5, -197)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 22)
 MainFrame.BorderSizePixel = 0
@@ -79,7 +79,7 @@ UICorner_Top.Parent = TopBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -70, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "Blade Hub [Pro V3]"
+Title.Text = "Blade Hub [Pro V4]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -175,14 +175,14 @@ end
 
 -- Elementos Dungeon
 local D_Farm = createButton(DungeonTab, "Auto-Farm Mobs", 0, "AutoFarm", colorOn)
-local D_Cards = createButton(DungeonTab, "Auto-Cartas (Aleatorio)", 35, "AutoCards", colorOn)
+local D_Cards = createButton(DungeonTab, "Auto-Cartas (Español)", 35, "AutoCards", colorOn)
 local D_Ulti = createButton(DungeonTab, "Auto-Habilidades (Sin Dash)", 70, "AutoUlti", colorOn)
 local D_Chests = createButton(DungeonTab, "Romper Cofres", 105, "BreakObjects", colorOn)
 local D_Zone = createButton(DungeonTab, "Auto-Avanzar (Portales)", 140, "AutoNextZone", colorOn)
 local D_Boss = createButton(DungeonTab, "Auto-Botones (Jefes)", 175, "AutoButtons", colorOn)
 local D_Continue = createButton(DungeonTab, "Auto-Seguir (Continuar)", 210, "AutoContinue", colorOn)
 
--- Mini Radar exclusivo para la Pestaña Raid
+-- Mini Radar Raid
 local RadarRaid = Instance.new("TextBox")
 RadarRaid.Size = UDim2.new(1, -20, 0, 45)
 RadarRaid.Position = UDim2.new(0, 10, 0, 0)
@@ -198,7 +198,7 @@ RadarRaid.Parent = RaidTab
 Instance.new("UICorner", RadarRaid).CornerRadius = UDim.new(0, 6)
 
 local R_Farm = createButton(RaidTab, "Auto-Farm Raids", 50, "AutoFarm", raidColorOn)
-local R_Cards = createButton(RaidTab, "Auto-Cartas (Aleatorio)", 85, "AutoCards", raidColorOn)
+local R_Cards = createButton(RaidTab, "Auto-Cartas (Español)", 85, "AutoCards", raidColorOn)
 local R_Ulti = createButton(RaidTab, "Auto-Habilidades (Sin Dash)", 120, "AutoUlti", raidColorOn)
 local R_Tree = createButton(RaidTab, "Auto Círculo Morado (Oleadas)", 155, "AutoTree", raidColorOn)
 local R_Continue = createButton(RaidTab, "Auto-Seguir (Continuar)", 190, "AutoContinue", raidColorOn)
@@ -209,9 +209,9 @@ local function syncButtons()
     R_Farm.Text = "Auto-Farm Raids: " .. (getgenv().PixelBladeState.AutoFarm and "ON" or "OFF")
     R_Farm.BackgroundColor3 = getgenv().PixelBladeState.AutoFarm and raidColorOn or colorOff
 
-    D_Cards.Text = "Auto-Cartas (Aleatorio): " .. (getgenv().PixelBladeState.AutoCards and "ON" or "OFF")
+    D_Cards.Text = "Auto-Cartas (Español): " .. (getgenv().PixelBladeState.AutoCards and "ON" or "OFF")
     D_Cards.BackgroundColor3 = getgenv().PixelBladeState.AutoCards and colorOn or colorOff
-    R_Cards.Text = "Auto-Cartas (Aleatorio): " .. (getgenv().PixelBladeState.AutoCards and "ON" or "OFF")
+    R_Cards.Text = "Auto-Cartas (Español): " .. (getgenv().PixelBladeState.AutoCards and "ON" or "OFF")
     R_Cards.BackgroundColor3 = getgenv().PixelBladeState.AutoCards and raidColorOn or colorOff
 
     D_Ulti.Text = "Auto-Habilidades (Sin Dash): " .. (getgenv().PixelBladeState.AutoUlti and "ON" or "OFF")
@@ -349,7 +349,6 @@ task.spawn(function()
                         end
                     end
                     
-                    -- Detección ultra precisa del círculo morado / raid
                     if getgenv().PixelBladeState.AutoTree then
                         if name:find("circle") or name:find("raid") or name:find("spawn") or name:find("wave") or obj:FindFirstChildOfClass("ProximityPrompt") then
                             if not tFound then 
@@ -376,10 +375,11 @@ task.spawn(function()
     end
 end)
 
--- MOTOR 2: Interfaz (Cartas Random y Seguir Estricto)
+-- MOTOR 2: Interfaz (Auto-Cartas 100% en Español y Seguir Estricto)
 task.spawn(function()
     while true do
         pcall(function()
+            -- 1. Auto-Seguir (Solo botones de continuar / seguir)
             if getgenv().PixelBladeState.AutoContinue then
                 for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
                     if gui:IsA("TextButton") and gui.Visible then
@@ -398,11 +398,13 @@ task.spawn(function()
                 end
             end
 
+            -- 2. Auto-Cartas (Busca directamente el texto "elegir" en español)
             if getgenv().PixelBladeState.AutoCards then
                 local foundCards = {}
                 for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
                     if gui:IsA("TextButton") and gui.Visible then
                         local btnText = gui.Text:lower()
+                        -- Búsqueda directa en español y también inglés por seguridad
                         if btnText:find("elegir") or btnText:find("choose") or btnText:find("select") then
                             table.insert(foundCards, gui)
                         end
