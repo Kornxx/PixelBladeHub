@@ -1,5 +1,5 @@
 --[[
-    Pixel Blade Hub - Auto Cartas Corregido
+    Pixel Blade Hub - Auto Farm (Cannon Goblin, Mage, Giant)
 ]]
 
 local Players = game:GetService("Players")
@@ -92,11 +92,11 @@ RadarBox.Parent = ContentContainer
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Size = UDim2.new(1, -20, 0, 30)
 ToggleBtn.Position = UDim2.new(0, 10, 0, 115)
-ToggleBtn.Text = "Auto-Farm Mobs: ON"
+ToggleBtn.Text = "Auto-Farm Mobs: OFF"
 ToggleBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
 ToggleBtn.Font = Enum.Font.SourceSansBold
 ToggleBtn.TextSize = 12
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 220, 180)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(245, 245, 220)
 ToggleBtn.BorderSizePixel = 0
 ToggleBtn.Parent = ContentContainer
 
@@ -193,7 +193,8 @@ local function getBestTarget()
             if humanoid and humanoid.Health > 0 and name ~= "player" and not name:find("ishiro") and name ~= "tutorial_clyde" then
                 discoveredMobs = discoveredMobs .. obj.Name .. "\n"
 
-                local isKnown = name:find("zombie") or name:find("archer") or name:find("mortar") or name:find("ghoul") or name:find("lumberjack")
+                -- Lista completa incluyendo los nuevos: cannon_goblin, mage, giant
+                local isKnown = name:find("zombie") or name:find("archer") or name:find("mortar") or name:find("ghoul") or name:find("lumberjack") or name:find("cannon_goblin") or name:find("mage") or name:find("giant")
                 local isChest = getgenv().PixelBladeState.BreakObjects and (name:find("chest") or name:find("crate"))
 
                 if isKnown or isChest then
@@ -219,7 +220,7 @@ local function getBestTarget()
     return bestTarget
 end
 
--- Motor mejorado con escaneo profundo de botones de cartas (ELEGIR)
+-- Motor principal de combate y auto-cartas
 task.spawn(function()
     while true do
         pcall(function()
