@@ -1,5 +1,5 @@
 --[[
-    Pixel Blade Hub - Versión Definitiva (Auto-Rejoin Persistente + Sin Lag)
+    Pixel Blade Hub - Versión Táctica (Defensa de Spawn + TP Directo)
 ]]
 
 local Players = game:GetService("Players")
@@ -12,10 +12,10 @@ if CoreGui:FindFirstChild("PixelBladeSmartHub") then
     CoreGui.PixelBladeSmartHub:Destroy()
 end
 
--- ESTADOS PERSISTENTES (Evita que se apaguen al hacer Rejoin / Reinyección)
+-- ESTADOS PERSISTENTES
 if not getgenv().PixelBladeState then
     getgenv().PixelBladeState = {
-        AutoFarm = true,  -- Activado por defecto para que el AFK no se detenga tras el rejoin
+        AutoFarm = true,  
         AutoCards = true,
         AutoUlti = true,
         AutoContinue = true,
@@ -80,7 +80,7 @@ UICorner_Top.Parent = TopBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -70, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "Blade Hub [AFK Persistente]"
+Title.Text = "Blade Hub [Defensa Raid]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 13
@@ -174,7 +174,7 @@ local function createButton(parent, text, yPos, stateKey, activeColor)
     return btn
 end
 
--- Elementos Dungeon
+-- Elementos Dungeon 
 local D_Farm = createButton(DungeonTab, "Auto-Farm Mobs", 0, "AutoFarm", colorOn)
 local D_Cards = createButton(DungeonTab, "Auto-Cartas (Blindado)", 35, "AutoCards", colorOn)
 local D_Ulti = createButton(DungeonTab, "Auto-Habilidades (Sin Dash)", 70, "AutoUlti", colorOn)
@@ -187,7 +187,7 @@ local D_Continue = createButton(DungeonTab, "Auto-Seguir (Continuar)", 210, "Aut
 local R_Farm = createButton(RaidTab, "Auto-Farm Raids", 0, "AutoFarm", raidColorOn)
 local R_Cards = createButton(RaidTab, "Auto-Cartas (Blindado)", 35, "AutoCards", raidColorOn)
 local R_Ulti = createButton(RaidTab, "Auto-Habilidades (Sin Dash)", 70, "AutoUlti", raidColorOn)
-local R_Tree = createButton(RaidTab, "Auto Círculo Morado (Oleadas)", 105, "AutoTree", raidColorOn)
+local R_Tree = createButton(RaidTab, "Auto Círculo Morado (Spawn)", 105, "AutoTree", raidColorOn)
 local R_Continue = createButton(RaidTab, "Auto-Seguir (Continuar)", 140, "AutoContinue", raidColorOn)
 
 local function syncButtons()
@@ -271,7 +271,7 @@ local cachedTree = nil
 local cachedButton = nil
 local isEnemyAlive = false
 
--- MOTOR 1: Escáner Silencioso (Optimizado para Móvil)
+-- MOTOR 1: Escáner (Enfoque exclusivo en "spawn")
 task.spawn(function()
     while true do
         pcall(function()
@@ -335,8 +335,9 @@ task.spawn(function()
                         end
                     end
                     
+                    -- Detección súper estricta: Solo busca 'spawn', 'circle' o 'raid'
                     if getgenv().PixelBladeState.AutoTree then
-                        if name:find("spawn") or name:find("circle") or name:find("raid") or name:find("wave") or obj:FindFirstChildOfClass("ProximityPrompt") then
+                        if name:find("spawn") or name:find("raid") or name:find("circle") then
                             if not tFound then 
                                 tFound = obj:IsA("Part") and obj or obj:IsA("MeshPart") and obj or obj:FindFirstChildOfClass("Part") 
                             end
@@ -408,7 +409,7 @@ task.spawn(function()
     end
 end)
 
--- MOTOR 3: Combate y Teletransporte sin Dash
+-- MOTOR 3: Combate (Radar de Proximidad Raid + TP Instantáneo)
 task.spawn(function()
     while true do
         pcall(function()
@@ -422,7 +423,16 @@ task.spawn(function()
                     
                     for _, root in ipairs(cachedTargets) do
                         if root and root.Parent and root:IsDescendantOf(Workspace) then
-                            local dist = (hrp.Position - root.Position).Magnitude
+                            local dist = math.huge
+                            
+                            -- RADAR DE DEFENSA: Si estamos en Raid y existe el spawn, prioriza a los enemigos más cercanos al spawn
+                            if getgenv().PixelBladeState.AutoTree and cachedTree then
+                                dist = (cachedTree.Position - root.Position).Magnitude
+                            else
+                                -- MODO NORMAL: Prioriza al más cercano al jugador
+                                dist = (hrp.Position - root.Position).Magnitude
+                            end
+                            
                             if dist < minDistance then
                                 minDistance = dist
                                 bestTarget = root
@@ -431,7 +441,9 @@ task.spawn(function()
                     end
                     
                     if bestTarget then
-                        if minDistance > 4 then
+                        -- El jugador igual tiene que acercarse al enemigo para pegarle
+                        local distToPlayer = (hrp.Position - bestTarget.Position).Magnitude
+                        if distToPlayer > 4 then
                             hrp.CFrame = bestTarget.CFrame * CFrame.new(0, 0, 3)
                         else
                             hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(bestTarget.Position.X, hrp.Position.Y, bestTarget.Position.Z))
@@ -463,10 +475,17 @@ task.spawn(function()
                         VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
                         task.wait(1.0)
                         VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                        
+                    -- TP AGRESIVO AL SPAWN (Sin Delays)
                     elseif getgenv().PixelBladeState.AutoTree and cachedTree then
-                        task.wait(2.0)
-                        if (hrp.Position - cachedTree.Position).Magnitude > 4 then
-                            hrp.CFrame = cachedTree.CFrame * CFrame.new(0, 2, 0)
+                        if (hrp.Position - cachedTree.Position).Magnitude > 3 then
+                            -- Teletransporte exacto (con pequeña elevación para no caer bajo el mapa)
+                            hrp.CFrame = cachedTree.CFrame * CFrame.new(0, 1, 0)
+                        else
+                            -- Si ya está encima, presiona 'E' por si hay un ProximityPrompt invisible para iniciar
+                            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                            task.wait(0.1)
+                            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
                         end
                     end
                 end
