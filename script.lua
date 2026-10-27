@@ -1,5 +1,5 @@
 --[[
-    Pixel Blade Hub - Versión Ultra Fluida (Anti-Vacío + Combate Rápido + Jefes)
+    Pixel Blade Hub - Versión Definitiva (Limpieza Obligatoria + Botón con E Mantenida)
 ]]
 
 local Players = game:GetService("Players")
@@ -65,7 +65,7 @@ TopBar.Parent = MainFrame
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -60, 1, 0)
 Title.Position = UDim2.new(0, 5, 0, 0)
-Title.Text = "Blade Hub [Ultra Fluid]"
+Title.Text = "Blade Hub [Smart Clean]"
 Title.TextColor3 = Color3.fromRGB(20, 20, 15)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 13
@@ -103,7 +103,7 @@ ContentContainer.Parent = MainFrame
 local RadarBox = Instance.new("TextBox")
 RadarBox.Size = UDim2.new(1, -20, 0, 60)
 RadarBox.Position = UDim2.new(0, 10, 0, 35)
-RadarBox.Text = "Radar Optimizado..."
+RadarBox.Text = "Radar Inteligente..."
 RadarBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 RadarBox.Font = Enum.Font.Code
 RadarBox.TextSize = 10
@@ -249,14 +249,16 @@ ExitBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
 local cachedTargets = {}
 local cachedPortal = nil
+local cachedButton = nil
 local isEnemyAlive = false
 
--- MOTOR 1: Radar ultrarrápido y seguro
+-- MOTOR 1: Radar Inteligente que separa estrictamente Mobs y Botones
 task.spawn(function()
     while true do
         pcall(function()
             local newTargets = {}
             local portalFound = nil
+            local buttonFound = nil
             local detected = ""
             local char = player.Character
             isEnemyAlive = false
@@ -280,8 +282,10 @@ task.spawn(function()
                         end
 
                         if not isIgnored then
+                            -- Detectar Mobs y Jefes
                             for _, mob in ipairs(targetMobs) do if name:find(mob) then isKnown = true break end end
                             
+                            -- Cofres normales seguros
                             if getgenv().PixelBladeState.BreakObjects then
                                 for _, chest in ipairs(chestNames) do 
                                     if name:find(chest) and not name:find("black") and not name:find("key") and not name:find("locked") then 
@@ -297,10 +301,12 @@ task.spawn(function()
                                 if root then table.insert(newTargets, root) end
                             end
 
+                            -- Guardar Botones por separado para activarlos SOLO cuando no haya enemigos
                             if getgenv().PixelBladeState.AutoButtons then
                                 if (name:find("button") or name:find("switch") or name:find("lever") or name:find("mechanism")) and not name:find("chest") and not name:find("black") then
-                                    local root = obj:IsA("Part") and obj or obj:FindFirstChildOfClass("Part") or obj:FindFirstChild("PrimaryPart")
-                                    if root then table.insert(newTargets, root) end
+                                    if not buttonFound then
+                                        buttonFound = obj:IsA("Part") and obj or obj:FindFirstChildOfClass("Part") or obj:FindFirstChild("PrimaryPart")
+                                    end
                                 end
                             end
                         end
@@ -318,12 +324,13 @@ task.spawn(function()
             
             cachedTargets = newTargets
             cachedPortal = portalFound
+            cachedButton = buttonFound
         end)
         task.wait(0.5)
     end
 end)
 
--- MOTOR 2: Auto Cartas y Auto Ulti fluido
+-- MOTOR 2: Auto Cartas y Auto Ulti
 task.spawn(function()
     while true do
         pcall(function()
@@ -361,7 +368,7 @@ task.spawn(function()
     end
 end)
 
--- MOTOR 3: Combate Anti-Vacío y Ataque Fluido
+-- MOTOR 3: Combate y Activación Segura del Botón (Solo si la etapa está limpia)
 task.spawn(function()
     while true do
         pcall(function()
@@ -369,7 +376,8 @@ task.spawn(function()
             if char and char:FindFirstChild("HumanoidRootPart") then
                 local hrp = char.HumanoidRootPart
                 
-                if getgenv().PixelBladeState.AutoFarm then
+                -- SI HAY ENEMIGOS: Farmea y limpia primero
+                if getgenv().PixelBladeState.AutoFarm and isEnemyAlive then
                     local bestTarget = nil
                     local minDistance = math.huge
                     
@@ -384,19 +392,27 @@ task.spawn(function()
                     end
                     
                     if bestTarget then
-                        -- PROTECCIÓN ANTI-VACÍO: Se teletransporta de manera segura a un costado y arriba, evitando caer al agua o paredes
                         hrp.CFrame = bestTarget.CFrame * CFrame.new(0, 2, 3)
                         VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
                         task.wait(0.03)
                         VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
                     end
-                end
-
-                if getgenv().PixelBladeState.AutoNextZone and not isEnemyAlive and cachedPortal then
-                    hrp.CFrame = cachedPortal.CFrame * CFrame.new(0, 2, 0)
+                
+                -- SI TODO ESTÁ DESPEJADO: Avanza a puertas o interactúa manteniendo presionado el botón con 'E'
+                elseif not isEnemyAlive then
+                    if getgenv().PixelBladeState.AutoNextZone and cachedPortal then
+                        hrp.CFrame = cachedPortal.CFrame * CFrame.new(0, 2, 0)
+                    elseif getgenv().PixelBladeState.AutoButtons and cachedButton then
+                        hrp.CFrame = cachedButton.CFrame * CFrame.new(0, 2, 2)
+                        task.wait(0.2)
+                        -- Simula mantener presionada la tecla E durante 1 segundo para activar el botón
+                        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                        task.wait(1.0)
+                        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                    end
                 end
             end
         end)
-        task.wait(0.1)
+        task.wait(0.15)
     end
 end)
