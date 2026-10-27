@@ -1,5 +1,5 @@
 --[[
-    Pixel Blade Hub - Versión Final Ultra Fluida (Sin Radar de Texto + Círculo Raid Directo)
+    Pixel Blade Hub - Versión Definitiva (Auto-Rejoin Persistente + Sin Lag)
 ]]
 
 local Players = game:GetService("Players")
@@ -12,16 +12,17 @@ if CoreGui:FindFirstChild("PixelBladeSmartHub") then
     CoreGui.PixelBladeSmartHub:Destroy()
 end
 
+-- ESTADOS PERSISTENTES (Evita que se apaguen al hacer Rejoin / Reinyección)
 if not getgenv().PixelBladeState then
     getgenv().PixelBladeState = {
-        AutoFarm = false,
+        AutoFarm = true,  -- Activado por defecto para que el AFK no se detenga tras el rejoin
         AutoCards = true,
-        AutoUlti = false,
+        AutoUlti = true,
         AutoContinue = true,
         BreakObjects = false,
         AutoNextZone = false,
         AutoButtons = false,
-        AutoTree = false
+        AutoTree = true
     }
 end
 
@@ -54,7 +55,7 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 250, 0, 350) -- Reducido en tamaño al quitar el cuadro de texto del radar
+MainFrame.Size = UDim2.new(0, 250, 0, 350)
 MainFrame.Position = UDim2.new(0.5, -125, 0.5, -175)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 22)
 MainFrame.BorderSizePixel = 0
@@ -79,10 +80,10 @@ UICorner_Top.Parent = TopBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -70, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "Blade Hub [Pro Final]"
+Title.Text = "Blade Hub [AFK Persistente]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 14
+Title.TextSize = 13
 Title.BackgroundTransparency = 1
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = TopBar
@@ -173,7 +174,7 @@ local function createButton(parent, text, yPos, stateKey, activeColor)
     return btn
 end
 
--- Elementos Dungeon (Posiciones compactas sin radar)
+-- Elementos Dungeon
 local D_Farm = createButton(DungeonTab, "Auto-Farm Mobs", 0, "AutoFarm", colorOn)
 local D_Cards = createButton(DungeonTab, "Auto-Cartas (Blindado)", 35, "AutoCards", colorOn)
 local D_Ulti = createButton(DungeonTab, "Auto-Habilidades (Sin Dash)", 70, "AutoUlti", colorOn)
@@ -182,7 +183,7 @@ local D_Zone = createButton(DungeonTab, "Auto-Avanzar (Portales)", 140, "AutoNex
 local D_Boss = createButton(DungeonTab, "Auto-Botones (Jefes)", 175, "AutoButtons", colorOn)
 local D_Continue = createButton(DungeonTab, "Auto-Seguir (Continuar)", 210, "AutoContinue", colorOn)
 
--- Elementos Raid (Posiciones compactas sin radar)
+-- Elementos Raid
 local R_Farm = createButton(RaidTab, "Auto-Farm Raids", 0, "AutoFarm", raidColorOn)
 local R_Cards = createButton(RaidTab, "Auto-Cartas (Blindado)", 35, "AutoCards", raidColorOn)
 local R_Ulti = createButton(RaidTab, "Auto-Habilidades (Sin Dash)", 70, "AutoUlti", raidColorOn)
@@ -270,7 +271,7 @@ local cachedTree = nil
 local cachedButton = nil
 local isEnemyAlive = false
 
--- MOTOR 1: Escáner Ultra Silencioso (Cero Strings de Texto, Máxima Velocidad)
+-- MOTOR 1: Escáner Silencioso (Optimizado para Móvil)
 task.spawn(function()
     while true do
         pcall(function()
@@ -334,7 +335,6 @@ task.spawn(function()
                         end
                     end
                     
-                    -- Detección directa del círculo morado utilizando el objeto "spawn"
                     if getgenv().PixelBladeState.AutoTree then
                         if name:find("spawn") or name:find("circle") or name:find("raid") or name:find("wave") or obj:FindFirstChildOfClass("ProximityPrompt") then
                             if not tFound then 
@@ -358,7 +358,6 @@ end)
 task.spawn(function()
     while true do
         pcall(function()
-            -- 1. Auto-Seguir
             if getgenv().PixelBladeState.AutoContinue then
                 for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
                     if gui:IsA("TextButton") and gui.Visible then
@@ -379,7 +378,6 @@ task.spawn(function()
                 end
             end
 
-            -- 2. Auto-Cartas 100% Blindado
             if getgenv().PixelBladeState.AutoCards then
                 local foundCards = {}
                 for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
