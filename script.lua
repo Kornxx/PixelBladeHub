@@ -1,5 +1,5 @@
 --[[
-    Pixel Blade Hub - Versión Definitiva Maestro (Radar Total + Hordas Raids + Auto-Rejoin)
+    Pixel Blade Hub - Versión Premium (Pestañas Dungeon/Raid + Árbol Inteligente)
 ]]
 
 local Players = game:GetService("Players")
@@ -17,14 +17,17 @@ if not getgenv().PixelBladeState then
     getgenv().PixelBladeState = {
         AutoFarm = false,
         AutoCards = true,
-        BreakObjects = true,
         AutoUlti = false,
-        AutoNextZone = true,
-        AutoButtons = true
+        -- Exclusivos de Dungeon
+        BreakObjects = true,
+        AutoNextZone = false,
+        AutoButtons = false,
+        -- Exclusivos de Raid
+        AutoTree = false
     }
 end
 
--- SISTEMA DE AUTO-REJOIN Y REINYECCIÓN AUTOMÁTICA
+-- SISTEMA DE AUTO-REJOIN
 pcall(function()
     if queue_on_teleport then
         queue_on_teleport([[
@@ -37,7 +40,7 @@ end)
 local targetMobs = {
     "zombie", "archer", "mortar", "ghoul", "lumberjack", 
     "cannon_goblin", "mage", "giant", "undead", "skeleton",
-    "kingslayer", "goblintype1", "goblintype2"
+    "kingslayer", "goblintype1", "goblintype2", "bolt"
 }
 local chestNames = {"chest", "crate"}
 local ignoreMobs = {
@@ -45,14 +48,15 @@ local ignoreMobs = {
     "black_chest", "locked", "key_chest", "boss_chest", "key", "black"
 }
 
+-- INTERFAZ GRÁFICA (HUD)
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "PixelBladeSmartHub"
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 240, 0, 365)
-MainFrame.Position = UDim2.new(0.5, -120, 0.5, -182)
-MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 35)
+MainFrame.Size = UDim2.new(0, 240, 0, 395)
+MainFrame.Position = UDim2.new(0.5, -120, 0.5, -197)
+MainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 32)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = false
 MainFrame.Draggable = false
@@ -60,22 +64,21 @@ MainFrame.Parent = ScreenGui
 
 local TopBar = Instance.new("Frame")
 TopBar.Size = UDim2.new(1, 0, 0, 30)
-TopBar.BackgroundColor3 = Color3.fromRGB(245, 245, 220)
+TopBar.BackgroundColor3 = Color3.fromRGB(245, 235, 210)
 TopBar.BorderSizePixel = 0
 TopBar.Parent = MainFrame
 
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -60, 1, 0)
 Title.Position = UDim2.new(0, 5, 0, 0)
-Title.Text = "Blade Hub [Radar Total]"
+Title.Text = "Blade Hub [Pro AFK]"
 Title.TextColor3 = Color3.fromRGB(20, 20, 15)
 Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 13
+Title.TextSize = 14
 Title.BackgroundTransparency = 1
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = TopBar
 
-local isMinimized = false
 local MinimizeBtn = Instance.new("TextButton")
 MinimizeBtn.Size = UDim2.new(0, 25, 0, 20)
 MinimizeBtn.Position = UDim2.new(1, -55, 0, 5)
@@ -83,7 +86,7 @@ MinimizeBtn.Text = "-"
 MinimizeBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
 MinimizeBtn.Font = Enum.Font.SourceSansBold
 MinimizeBtn.TextSize = 14
-MinimizeBtn.BackgroundColor3 = Color3.fromRGB(200, 200, 180)
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(200, 190, 170)
 MinimizeBtn.BorderSizePixel = 0
 MinimizeBtn.Parent = TopBar
 
@@ -98,150 +101,193 @@ CloseBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
 CloseBtn.BorderSizePixel = 0
 CloseBtn.Parent = TopBar
 
-local ContentContainer = Instance.new("Folder")
-ContentContainer.Name = "ContentContainer"
-ContentContainer.Parent = MainFrame
+-- PESTAÑAS (TABS)
+local TabBar = Instance.new("Frame")
+TabBar.Size = UDim2.new(1, 0, 0, 25)
+TabBar.Position = UDim2.new(0, 0, 0, 30)
+TabBar.BackgroundColor3 = Color3.fromRGB(50, 50, 45)
+TabBar.BorderSizePixel = 0
+TabBar.Parent = MainFrame
 
-local RadarBox = Instance.new("TextBox")
-RadarBox.Size = UDim2.new(1, -20, 0, 60)
-RadarBox.Position = UDim2.new(0, 10, 0, 35)
-RadarBox.Text = "Escaneando Radar..."
-RadarBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-RadarBox.Font = Enum.Font.Code
-RadarBox.TextSize = 10
-RadarBox.TextWrapped = true
-RadarBox.ClearTextOnFocus = false
-RadarBox.MultiLine = true
-RadarBox.BackgroundColor3 = Color3.fromRGB(50, 50, 45)
-RadarBox.BorderSizePixel = 0
-RadarBox.Parent = ContentContainer
+local TabDungeonBtn = Instance.new("TextButton")
+TabDungeonBtn.Size = UDim2.new(0.5, 0, 1, 0)
+TabDungeonBtn.Position = UDim2.new(0, 0, 0, 0)
+TabDungeonBtn.Text = "DUNGEON"
+TabDungeonBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+TabDungeonBtn.Font = Enum.Font.SourceSansBold
+TabDungeonBtn.TextSize = 12
+TabDungeonBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 65)
+TabDungeonBtn.BorderSizePixel = 0
+TabDungeonBtn.Parent = TabBar
 
-local ToggleBtn = Instance.new("TextButton")
-ToggleBtn.Size = UDim2.new(1, -20, 0, 28)
-ToggleBtn.Position = UDim2.new(0, 10, 0, 100)
-ToggleBtn.Text = "Auto-Farm Mobs: " .. (getgenv().PixelBladeState.AutoFarm and "ON" or "OFF")
-ToggleBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
-ToggleBtn.Font = Enum.Font.SourceSansBold
-ToggleBtn.TextSize = 12
-ToggleBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoFarm and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
-ToggleBtn.BorderSizePixel = 0
-ToggleBtn.Parent = ContentContainer
+local TabRaidBtn = Instance.new("TextButton")
+TabRaidBtn.Size = UDim2.new(0.5, 0, 1, 0)
+TabRaidBtn.Position = UDim2.new(0.5, 0, 0, 0)
+TabRaidBtn.Text = "RAIDS"
+TabRaidBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+TabRaidBtn.Font = Enum.Font.SourceSansBold
+TabRaidBtn.TextSize = 12
+TabRaidBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 35)
+TabRaidBtn.BorderSizePixel = 0
+TabRaidBtn.Parent = TabBar
 
-ToggleBtn.MouseButton1Click:Connect(function()
-    getgenv().PixelBladeState.AutoFarm = not getgenv().PixelBladeState.AutoFarm
-    ToggleBtn.Text = "Auto-Farm Mobs: " .. (getgenv().PixelBladeState.AutoFarm and "ON" or "OFF")
-    ToggleBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoFarm and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
+-- CONTENEDORES DE PESTAÑAS
+local DungeonTab = Instance.new("Frame")
+DungeonTab.Size = UDim2.new(1, 0, 1, -85)
+DungeonTab.Position = UDim2.new(0, 0, 0, 55)
+DungeonTab.BackgroundTransparency = 1
+DungeonTab.Visible = true
+DungeonTab.Parent = MainFrame
+
+local RaidTab = Instance.new("Frame")
+RaidTab.Size = UDim2.new(1, 0, 1, -85)
+RaidTab.Position = UDim2.new(0, 0, 0, 55)
+RaidTab.BackgroundTransparency = 1
+RaidTab.Visible = false
+RaidTab.Parent = MainFrame
+
+-- FUNCIÓN PARA CREAR BOTONES ESTÁNDAR
+local function createButton(parent, text, yPos, stateKey, colorOn, colorOff)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -20, 0, 26)
+    btn.Position = UDim2.new(0, 10, 0, yPos)
+    btn.Text = text .. ": " .. (getgenv().PixelBladeState[stateKey] and "ON" or "OFF")
+    btn.TextColor3 = Color3.fromRGB(20, 20, 15)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 12
+    btn.BackgroundColor3 = getgenv().PixelBladeState[stateKey] and colorOn or colorOff
+    btn.BorderSizePixel = 0
+    btn.Parent = parent
+    
+    btn.MouseButton1Click:Connect(function()
+        getgenv().PixelBladeState[stateKey] = not getgenv().PixelBladeState[stateKey]
+        btn.Text = text .. ": " .. (getgenv().PixelBladeState[stateKey] and "ON" or "OFF")
+        btn.BackgroundColor3 = getgenv().PixelBladeState[stateKey] and colorOn or colorOff
+    end)
+    return btn
+end
+
+local colorOn = Color3.fromRGB(180, 220, 180)
+local colorOff = Color3.fromRGB(245, 245, 220)
+local raidColorOn = Color3.fromRGB(200, 180, 220) -- Color especial para pestaña Raid
+
+-- ELEMENTOS DUNGEON TAB
+local RadarDungeon = Instance.new("TextBox")
+RadarDungeon.Size = UDim2.new(1, -20, 0, 55)
+RadarDungeon.Position = UDim2.new(0, 10, 0, 5)
+RadarDungeon.Text = "Radar Dungeon Limpio..."
+RadarDungeon.TextColor3 = Color3.fromRGB(255, 255, 255)
+RadarDungeon.Font = Enum.Font.Code
+RadarDungeon.TextSize = 10
+RadarDungeon.TextWrapped = true
+RadarDungeon.ClearTextOnFocus = false
+RadarDungeon.MultiLine = true
+RadarDungeon.BackgroundColor3 = Color3.fromRGB(50, 50, 45)
+RadarDungeon.BorderSizePixel = 0
+RadarDungeon.Parent = DungeonTab
+
+local D_Farm = createButton(DungeonTab, "Auto-Farm Mobs", 65, "AutoFarm", colorOn, colorOff)
+local D_Cards = createButton(DungeonTab, "Auto-Cartas (Llama/Furia)", 95, "AutoCards", colorOn, colorOff)
+local D_Ulti = createButton(DungeonTab, "Auto-Habilidades (Ulti)", 125, "AutoUlti", colorOn, colorOff)
+local D_Chests = createButton(DungeonTab, "Romper Cofres", 155, "BreakObjects", colorOn, colorOff)
+local D_Zone = createButton(DungeonTab, "Auto-Avanzar (Portales)", 185, "AutoNextZone", colorOn, colorOff)
+local D_Boss = createButton(DungeonTab, "Auto-Botones (Jefes)", 215, "AutoButtons", colorOn, colorOff)
+
+-- ELEMENTOS RAID TAB
+local RadarRaid = Instance.new("TextBox")
+RadarRaid.Size = UDim2.new(1, -20, 0, 55)
+RadarRaid.Position = UDim2.new(0, 10, 0, 5)
+RadarRaid.Text = "Radar Raid Limpio..."
+RadarRaid.TextColor3 = Color3.fromRGB(255, 255, 255)
+RadarRaid.Font = Enum.Font.Code
+RadarRaid.TextSize = 10
+RadarRaid.TextWrapped = true
+RadarRaid.ClearTextOnFocus = false
+RadarRaid.MultiLine = true
+RadarRaid.BackgroundColor3 = Color3.fromRGB(50, 50, 45)
+RadarRaid.BorderSizePixel = 0
+RadarRaid.Parent = RaidTab
+
+local R_Farm = createButton(RaidTab, "Auto-Farm Raids", 65, "AutoFarm", raidColorOn, colorOff)
+local R_Cards = createButton(RaidTab, "Auto-Cartas (Llama/Furia)", 95, "AutoCards", raidColorOn, colorOff)
+local R_Ulti = createButton(RaidTab, "Auto-Habilidades (Ulti)", 125, "AutoUlti", raidColorOn, colorOff)
+local R_Tree = createButton(RaidTab, "Auto-Árbol (Sig. Oleada)", 155, "AutoTree", raidColorOn, colorOff)
+
+-- SINCRONIZAR BOTONES COMPARTIDOS
+local function syncButtons()
+    D_Farm.Text = "Auto-Farm Mobs: " .. (getgenv().PixelBladeState.AutoFarm and "ON" or "OFF")
+    D_Farm.BackgroundColor3 = getgenv().PixelBladeState.AutoFarm and colorOn or colorOff
+    R_Farm.Text = "Auto-Farm Raids: " .. (getgenv().PixelBladeState.AutoFarm and "ON" or "OFF")
+    R_Farm.BackgroundColor3 = getgenv().PixelBladeState.AutoFarm and raidColorOn or colorOff
+
+    D_Cards.Text = "Auto-Cartas (Llama/Furia): " .. (getgenv().PixelBladeState.AutoCards and "ON" or "OFF")
+    D_Cards.BackgroundColor3 = getgenv().PixelBladeState.AutoCards and colorOn or colorOff
+    R_Cards.Text = "Auto-Cartas (Llama/Furia): " .. (getgenv().PixelBladeState.AutoCards and "ON" or "OFF")
+    R_Cards.BackgroundColor3 = getgenv().PixelBladeState.AutoCards and raidColorOn or colorOff
+
+    D_Ulti.Text = "Auto-Habilidades (Ulti): " .. (getgenv().PixelBladeState.AutoUlti and "ON" or "OFF")
+    D_Ulti.BackgroundColor3 = getgenv().PixelBladeState.AutoUlti and colorOn or colorOff
+    R_Ulti.Text = "Auto-Habilidades (Ulti): " .. (getgenv().PixelBladeState.AutoUlti and "ON" or "OFF")
+    R_Ulti.BackgroundColor3 = getgenv().PixelBladeState.AutoUlti and raidColorOn or colorOff
+end
+
+D_Farm.MouseButton1Click:Connect(syncButtons)
+R_Farm.MouseButton1Click:Connect(syncButtons)
+D_Cards.MouseButton1Click:Connect(syncButtons)
+R_Cards.MouseButton1Click:Connect(syncButtons)
+D_Ulti.MouseButton1Click:Connect(syncButtons)
+R_Ulti.MouseButton1Click:Connect(syncButtons)
+
+-- CONTROL DE PESTAÑAS
+TabDungeonBtn.MouseButton1Click:Connect(function()
+    DungeonTab.Visible = true
+    RaidTab.Visible = false
+    TabDungeonBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 65)
+    TabDungeonBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TabRaidBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 35)
+    TabRaidBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
 end)
 
-local CardBtn = Instance.new("TextButton")
-CardBtn.Size = UDim2.new(1, -20, 0, 28)
-CardBtn.Position = UDim2.new(0, 10, 0, 132)
-CardBtn.Text = "Auto-Cartas: " .. (getgenv().PixelBladeState.AutoCards and "ON" or "OFF")
-CardBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
-CardBtn.Font = Enum.Font.SourceSansBold
-CardBtn.TextSize = 12
-CardBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoCards and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
-CardBtn.BorderSizePixel = 0
-CardBtn.Parent = ContentContainer
-
-CardBtn.MouseButton1Click:Connect(function()
-    getgenv().PixelBladeState.AutoCards = not getgenv().PixelBladeState.AutoCards
-    CardBtn.Text = "Auto-Cartas: " .. (getgenv().PixelBladeState.AutoCards and "ON" or "OFF")
-    CardBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoCards and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
+TabRaidBtn.MouseButton1Click:Connect(function()
+    DungeonTab.Visible = false
+    RaidTab.Visible = true
+    TabRaidBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 65)
+    TabRaidBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TabDungeonBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 35)
+    TabDungeonBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
 end)
 
-local ChestBtn = Instance.new("TextButton")
-ChestBtn.Size = UDim2.new(1, -20, 0, 28)
-ChestBtn.Position = UDim2.new(0, 10, 0, 164)
-ChestBtn.Text = "Romper Cofres: " .. (getgenv().PixelBladeState.BreakObjects and "ON" or "OFF")
-ChestBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
-ChestBtn.Font = Enum.Font.SourceSansBold
-ChestBtn.TextSize = 12
-ChestBtn.BackgroundColor3 = getgenv().PixelBladeState.BreakObjects and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
-ChestBtn.BorderSizePixel = 0
-ChestBtn.Parent = ContentContainer
-
-ChestBtn.MouseButton1Click:Connect(function()
-    getgenv().PixelBladeState.BreakObjects = not getgenv().PixelBladeState.BreakObjects
-    ChestBtn.Text = "Romper Cofres: " .. (getgenv().PixelBladeState.BreakObjects and "ON" or "OFF")
-    ChestBtn.BackgroundColor3 = getgenv().PixelBladeState.BreakObjects and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
-end)
-
-local UltiBtn = Instance.new("TextButton")
-UltiBtn.Size = UDim2.new(1, -20, 0, 28)
-UltiBtn.Position = UDim2.new(0, 10, 0, 196)
-UltiBtn.Text = "Auto-Habilidades (Ulti): " .. (getgenv().PixelBladeState.AutoUlti and "ON" or "OFF")
-UltiBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
-UltiBtn.Font = Enum.Font.SourceSansBold
-UltiBtn.TextSize = 12
-UltiBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoUlti and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
-UltiBtn.BorderSizePixel = 0
-UltiBtn.Parent = ContentContainer
-
-UltiBtn.MouseButton1Click:Connect(function()
-    getgenv().PixelBladeState.AutoUlti = not getgenv().PixelBladeState.AutoUlti
-    UltiBtn.Text = "Auto-Habilidades (Ulti): " .. (getgenv().PixelBladeState.AutoUlti and "ON" or "OFF")
-    UltiBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoUlti and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
-end)
-
-local ZoneBtn = Instance.new("TextButton")
-ZoneBtn.Size = UDim2.new(1, -20, 0, 28)
-ZoneBtn.Position = UDim2.new(0, 10, 0, 228)
-ZoneBtn.Text = "Auto-Avanzar Zona: " .. (getgenv().PixelBladeState.AutoNextZone and "ON" or "OFF")
-ZoneBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
-ZoneBtn.Font = Enum.Font.SourceSansBold
-ZoneBtn.TextSize = 12
-ZoneBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoNextZone and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
-ZoneBtn.BorderSizePixel = 0
-ZoneBtn.Parent = ContentContainer
-
-ZoneBtn.MouseButton1Click:Connect(function()
-    getgenv().PixelBladeState.AutoNextZone = not getgenv().PixelBladeState.AutoNextZone
-    ZoneBtn.Text = "Auto-Avanzar Zona: " .. (getgenv().PixelBladeState.AutoNextZone and "ON" or "OFF")
-    ZoneBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoNextZone and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
-end)
-
-local ButtonBtn = Instance.new("TextButton")
-ButtonBtn.Size = UDim2.new(1, -20, 0, 28)
-ButtonBtn.Position = UDim2.new(0, 10, 0, 260)
-ButtonBtn.Text = "Auto-Botones (Jefes): " .. (getgenv().PixelBladeState.AutoButtons and "ON" or "OFF")
-ButtonBtn.TextColor3 = Color3.fromRGB(20, 20, 15)
-ButtonBtn.Font = Enum.Font.SourceSansBold
-ButtonBtn.TextSize = 12
-ButtonBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoButtons and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
-ButtonBtn.BorderSizePixel = 0
-ButtonBtn.Parent = ContentContainer
-
-ButtonBtn.MouseButton1Click:Connect(function()
-    getgenv().PixelBladeState.AutoButtons = not getgenv().PixelBladeState.AutoButtons
-    ButtonBtn.Text = "Auto-Botones (Jefes): " .. (getgenv().PixelBladeState.AutoButtons and "ON" or "OFF")
-    ButtonBtn.BackgroundColor3 = getgenv().PixelBladeState.AutoButtons and Color3.fromRGB(180, 220, 180) or Color3.fromRGB(245, 245, 220)
-end)
-
+-- BOTÓN CERRAR GLOBAL
 local ExitBtn = Instance.new("TextButton")
 ExitBtn.Size = UDim2.new(1, -20, 0, 24)
-ExitBtn.Position = UDim2.new(0, 10, 0, 292)
+ExitBtn.Position = UDim2.new(0, 10, 1, -30)
 ExitBtn.Text = "Cerrar Hub por completo"
 ExitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 ExitBtn.Font = Enum.Font.SourceSansBold
 ExitBtn.TextSize = 11
 ExitBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
 ExitBtn.BorderSizePixel = 0
-ExitBtn.Parent = ContentContainer
+ExitBtn.Parent = MainFrame
 
+local isMinimized = false
 MinimizeBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
     if isMinimized then
         MainFrame.Size = UDim2.new(0, 240, 0, 30)
         MinimizeBtn.Text = "+"
-        for _, obj in ipairs(ContentContainer:GetChildren()) do
-            if obj:IsA("GuiObject") then obj.Visible = false end
-        end
+        DungeonTab.Visible = false
+        RaidTab.Visible = false
+        TabBar.Visible = false
+        ExitBtn.Visible = false
     else
-        MainFrame.Size = UDim2.new(0, 240, 0, 335)
+        MainFrame.Size = UDim2.new(0, 240, 0, 395)
         MinimizeBtn.Text = "-"
-        for _, obj in ipairs(ContentContainer:GetChildren()) do
-            if obj:IsA("GuiObject") then obj.Visible = true end
+        TabBar.Visible = true
+        ExitBtn.Visible = true
+        if TabDungeonBtn.BackgroundColor3 == Color3.fromRGB(70, 70, 65) then
+            DungeonTab.Visible = true
+        else
+            RaidTab.Visible = true
         end
     end
 end)
@@ -251,17 +297,19 @@ ExitBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
 local cachedTargets = {}
 local cachedPortal = nil
+local cachedTree = nil
 local cachedButton = nil
 local isEnemyAlive = false
 
--- MOTOR 1: Radar Abierto y Total (Muestra cualquier entidad con vida en pantalla)
+-- MOTOR 1: Radar Separado (Filtra Desconocidos y Separa Árbol vs Portales)
 task.spawn(function()
     while true do
         pcall(function()
             local newTargets = {}
-            local portalFound = nil
-            local buttonFound = nil
-            local detectedNames = ""
+            local pFound = nil
+            local tFound = nil
+            local bFound = nil
+            local unknownNames = {}
             local char = player.Character
             isEnemyAlive = false
 
@@ -295,52 +343,61 @@ task.spawn(function()
                                 end
                             end
 
-                            -- Si tiene vida y no está en ignorados, va al blanco
-                            if (hum and hum.Health > 0) or isChest then
-                                if hum and not isChest then 
-                                    isEnemyAlive = true 
-                                    -- Radar abierto: lista todos los mobs activos para que no se escape ninguno
-                                    detectedNames = detectedNames .. "[Mob] " .. obj.Name .. "\n"
-                                end
+                            if (isKnown and hum and hum.Health > 0) or isChest then
+                                if isKnown then isEnemyAlive = true end
                                 local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("PrimaryPart") or obj:FindFirstChildOfClass("Part")
                                 if root then table.insert(newTargets, root) end
+                            elseif hum and hum.Health > 0 and not isKnown then
+                                isEnemyAlive = true
+                                local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("PrimaryPart") or obj:FindFirstChildOfClass("Part")
+                                if root then table.insert(newTargets, root) end
+                                if not unknownNames[obj.Name] then unknownNames[obj.Name] = true end
                             end
 
                             if getgenv().PixelBladeState.AutoButtons then
                                 if (name:find("button") or name:find("switch") or name:find("lever") or name:find("mechanism")) and not name:find("chest") and not name:find("black") then
-                                    if not buttonFound then
-                                        buttonFound = obj:IsA("Part") and obj or obj:FindFirstChildOfClass("Part") or obj:FindFirstChild("PrimaryPart")
+                                    if not bFound then
+                                        bFound = obj:IsA("Part") and obj or obj:FindFirstChildOfClass("Part") or obj:FindFirstChild("PrimaryPart")
                                     end
                                 end
                             end
                         end
                     end
 
+                    -- Detección separada: Portales de Dungeon vs Árbol/Círculo de Raids
                     if getgenv().PixelBladeState.AutoNextZone then
-                        if name:find("tree") or name:find("arbol") or name:find("circle") or name:find("spawn") or name:find("zone") or name:find("portal") or name:find("exit_door") or name:find("door") or name:find("next") then
-                            if not portalFound then
-                                portalFound = obj:IsA("Part") and obj or obj:FindFirstChildOfClass("Part") or obj:FindFirstChild("PrimaryPart")
-                            end
+                        if name:find("portal") or name:find("exit_door") or name:find("door") or name:find("next") then
+                            if not pFound then pFound = obj:IsA("Part") and obj or obj:FindFirstChildOfClass("Part") or obj:FindFirstChild("PrimaryPart") end
+                        end
+                    end
+                    
+                    if getgenv().PixelBladeState.AutoTree then
+                        if name:find("tree") or name:find("arbol") or name:find("circle") or name:find("spawn") or name:find("wave") then
+                            if not tFound then tFound = obj:IsA("Part") and obj or obj:FindFirstChildOfClass("Part") or obj:FindFirstChild("PrimaryPart") end
                         end
                     end
                 end
             end
             
             cachedTargets = newTargets
-            cachedPortal = portalFound
-            cachedButton = buttonFound
+            cachedPortal = pFound
+            cachedTree = tFound
+            cachedButton = bFound
 
-            if detectedNames ~= "" then
-                RadarBox.Text = "Detectados:\n" .. detectedNames
-            else
-                RadarBox.Text = "Radar en espera... (Limpiando)"
+            local unknownList = ""
+            for mobName, _ in pairs(unknownNames) do
+                unknownList = unknownList .. "[NUEVO] " .. mobName .. "\n"
             end
+
+            local radarText = unknownList ~= "" and "¡Enemigos Nuevos!\n" .. unknownList or "Radar limpio (Sin desconocidos)"
+            RadarDungeon.Text = radarText
+            RadarRaid.Text = radarText
         end)
         task.wait(0.3)
     end
 end)
 
--- MOTOR 2: Auto-Cartas Inteligente con Prioridad Absoluta (Llama y Espíritus)
+-- MOTOR 2: Auto-Cartas Inteligente (Prioridad: Llama y Espíritus)
 task.spawn(function()
     while true do
         pcall(function()
@@ -397,7 +454,7 @@ task.spawn(function()
     end
 end)
 
--- MOTOR 3: Combate Fluido Anti-Hordas y Transiciones
+-- MOTOR 3: Combate Fluido y Transiciones Seguras
 task.spawn(function()
     while true do
         pcall(function()
@@ -427,14 +484,20 @@ task.spawn(function()
                     end
                 
                 elseif not isEnemyAlive then
+                    -- Dungeon: Portales
                     if getgenv().PixelBladeState.AutoNextZone and cachedPortal then
                         hrp.CFrame = cachedPortal.CFrame * CFrame.new(0, 2, 0)
+                    -- Dungeon: Botones (Mantiene E)
                     elseif getgenv().PixelBladeState.AutoButtons and cachedButton then
                         hrp.CFrame = cachedButton.CFrame * CFrame.new(0, 2, 2)
                         task.wait(0.2)
                         VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
                         task.wait(1.0)
                         VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                    -- Raid: Árbol / Oleadas (Espera un poco para evitar bugs de fase)
+                    elseif getgenv().PixelBladeState.AutoTree and cachedTree then
+                        task.wait(1.5) -- Pausa inteligente para asegurar que la oleada terminó
+                        hrp.CFrame = cachedTree.CFrame * CFrame.new(0, 2, 0)
                     end
                 end
             end
