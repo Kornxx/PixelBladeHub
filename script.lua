@@ -1,5 +1,5 @@
 --[[
-    Pixel Blade Hub - Definitivo (Filtro Inteligente Anti-Aliados por Distancia y Dueño)
+    Pixel Blade Hub - Versión 100% Limpia (Anti-Aliados Real)
 ]]
 
 local Players = game:GetService("Players")
@@ -22,22 +22,13 @@ if not getgenv().PixelBladeState then
     }
 end
 
-pcall(function()
-    if queue_on_teleport then
-        queue_on_teleport([[
-            task.wait(3)
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/Kornxx/PixelBladeHub/refs/heads/main/script.lua?t=" .. tostring(tick())))()
-        ]])
-    end
-end)
-
 local targetMobs = {
     "zombie", "archer", "mortar", "ghoul", "lumberjack", 
     "cannon_goblin", "mage", "giant", "undead", "skeleton"
 }
 local chestNames = {"chest", "crate"}
 
--- Lista Negra para ignorar aliados, mascotas y cofres negros
+-- LISTA NEGRA ESTRICTA: El necromancer (aliado) y cualquier invocación queda fuera por completo
 local ignoreMobs = {
     "necromancer", "tutorial_clyde", "ally", "summon", "pet", "familiar", 
     "black_chest", "locked", "key_chest", "boss_chest"
@@ -65,7 +56,7 @@ TopBar.Parent = MainFrame
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -60, 1, 0)
 Title.Position = UDim2.new(0, 5, 0, 0)
-Title.Text = "Blade Hub [Smart Filter]"
+Title.Text = "Blade Hub [Clean v2]"
 Title.TextColor3 = Color3.fromRGB(20, 20, 15)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 13
@@ -103,7 +94,7 @@ ContentContainer.Parent = MainFrame
 local RadarBox = Instance.new("TextBox")
 RadarBox.Size = UDim2.new(1, -20, 0, 70)
 RadarBox.Position = UDim2.new(0, 10, 0, 38)
-RadarBox.Text = "Radar Activo..."
+RadarBox.Text = "Radar Limpio..."
 RadarBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 RadarBox.Font = Enum.Font.Code
 RadarBox.TextSize = 10
@@ -234,7 +225,7 @@ local cachedTargets = {}
 local cachedPortal = nil
 local isEnemyAlive = false
 
--- MOTOR 1: Radar con validación estricta de jerarquía (Ignora aliados invocados)
+-- MOTOR 1: Radar con validación estricta anti-aliados y anti-necromancer
 task.spawn(function()
     while true do
         pcall(function()
@@ -254,13 +245,11 @@ task.spawn(function()
                         local isKnown = false
                         local isChest = false
                         
-                        -- NUEVO: Si el objeto está dentro de tu propio personaje o modelo, es tu aliado/minion
-                        if obj:IsDescendantOf(char) then
-                            isIgnored = true
+                        -- Ignorar si pertenece al jugador o está en la lista negra (necromancer, etc.)
+                        if obj:IsDescendantOf(char) or name:find("player") or name:find(player.Name:lower()) then 
+                            isIgnored = true 
                         end
-
-                        -- Filtro por nombres en lista negra (necromancer, cofres negros, etc.)
-                        if name:find("player") or name:find(player.Name:lower()) then isIgnored = true end
+                        
                         for _, ig in ipairs(ignoreMobs) do
                             if name:find(ig) then isIgnored = true break end
                         end
