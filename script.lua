@@ -1,5 +1,5 @@
 --[[
-    Shiro Hub [v1.2] - Máxima Optimización Móvil + Sin Radar + Spawn Definitivo
+    Shiro Hub [v1.4] - Caza Universal + TP Centro Círculo + UI Scanner Profundo
 ]]
 
 local Players = game:GetService("Players")
@@ -35,19 +35,15 @@ pcall(function()
     end
 end)
 
-local targetMobs = {
-    "zombie", "archer", "mortar", "ghoul", "lumberjack", 
-    "cannon_goblin", "mage", "giant", "undead", "skeleton",
-    "kingslayer", "goblintype1", "goblintype2", "bolt"
-}
+-- Lista de ignorados (evita maniquíes estáticos y aliados)
 local chestNames = {"chest", "crate"}
 local ignoreMobs = {
     "necromancer", "tutorial_clyde", "ally", "summon", "pet", "familiar", 
-    "black_chest", "locked", "key_chest", "boss_chest", "key", "black"
+    "black_chest", "locked", "key_chest", "boss_chest", "key", "black", "dummy", "statue", "decora", "npc"
 }
 
 -- ==========================================
--- INTERFAZ GRÁFICA (HUD) SHIRO HUB v1.2
+-- INTERFAZ GRÁFICA (HUD) SHIRO HUB v1.4
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "ShiroSmartHub"
@@ -55,7 +51,7 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 250, 0, 310) -- Interfaz compacta al quitar el radar
+MainFrame.Size = UDim2.new(0, 250, 0, 310)
 MainFrame.Position = UDim2.new(0.5, -125, 0.5, -155)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
@@ -80,7 +76,7 @@ UICorner_Top.Parent = TopBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -70, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "Shiro Hub [v1.2]"
+Title.Text = "Shiro Hub [v1.4]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -175,7 +171,7 @@ local function createButton(parent, text, yPos, stateKey, activeColor)
 end
 
 -- ======================= ELEMENTOS DUNGEON =======================
-local D_Farm = createButton(DungeonTab, "Auto-Farm Mobs", 0, "AutoFarm", colorOn)
+local D_Farm = createButton(DungeonTab, "Auto-Farm Universal", 0, "AutoFarm", colorOn)
 local D_Cards = createButton(DungeonTab, "Auto-Cartas", 35, "AutoCards", colorOn)
 local D_Ulti = createButton(DungeonTab, "Auto-Habilidades (No Dash)", 70, "AutoUlti", colorOn)
 local D_Chests = createButton(DungeonTab, "Romper Cofres", 105, "BreakObjects", colorOn)
@@ -183,17 +179,17 @@ local D_Zone = createButton(DungeonTab, "Auto-Avanzar Portales", 140, "AutoNextZ
 local D_Boss = createButton(DungeonTab, "Auto-Botones Jefes", 175, "AutoButtons", colorOn)
 local D_Continue = createButton(DungeonTab, "Auto-Seguir Partida", 210, "AutoContinue", colorOn)
 
--- ======================= ELEMENTOS RAID (SIN RADAR) =======================
-local R_Farm = createButton(RaidTab, "Auto-Farm Raids", 0, "AutoFarm", raidColorOn)
+-- ======================= ELEMENTOS RAID =======================
+local R_Farm = createButton(RaidTab, "Auto-Farm Universal", 0, "AutoFarm", raidColorOn)
 local R_Cards = createButton(RaidTab, "Auto-Cartas", 35, "AutoCards", raidColorOn)
 local R_Ulti = createButton(RaidTab, "Auto-Habilidades (No Dash)", 70, "AutoUlti", raidColorOn)
 local R_Tree = createButton(RaidTab, "Proteger Spawn (Raid)", 105, "AutoTree", raidColorOn)
 local R_Continue = createButton(RaidTab, "Auto-Seguir Partida", 140, "AutoContinue", raidColorOn)
 
 local function syncButtons()
-    D_Farm.Text = "Auto-Farm Mobs: " .. (getgenv().ShiroHubState.AutoFarm and "ON" or "OFF")
+    D_Farm.Text = "Auto-Farm Universal: " .. (getgenv().ShiroHubState.AutoFarm and "ON" or "OFF")
     D_Farm.BackgroundColor3 = getgenv().ShiroHubState.AutoFarm and colorOn or colorOff
-    R_Farm.Text = "Auto-Farm Raids: " .. (getgenv().ShiroHubState.AutoFarm and "ON" or "OFF")
+    R_Farm.Text = "Auto-Farm Universal: " .. (getgenv().ShiroHubState.AutoFarm and "ON" or "OFF")
     R_Farm.BackgroundColor3 = getgenv().ShiroHubState.AutoFarm and raidColorOn or colorOff
 
     D_Cards.Text = "Auto-Cartas: " .. (getgenv().ShiroHubState.AutoCards and "ON" or "OFF")
@@ -263,7 +259,7 @@ end)
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
 -- ==========================================
--- MOTOR 1: CACHÉ POR EVENTOS (ULTRA OPTIMIZADO)
+-- MOTOR 1: CACHÉ POR EVENTOS (CAZA UNIVERSAL ACTIVA)
 -- ==========================================
 local WorldCache = {
     Mobs = {},
@@ -279,9 +275,17 @@ local function classifyObject(obj)
 
         if obj:IsA("Model") then
             local hum = obj:FindFirstChildOfClass("Humanoid")
-            if hum then WorldCache.Mobs[obj] = hum end
+            -- CAZA UNIVERSAL: Atrapa absolutamente TODO lo que tenga vida y no sea aliado/estatua
+            if hum and hum.MaxHealth > 5 then
+                local isBlocked = false
+                for _, ig in ipairs(ignoreMobs) do
+                    if name:find(ig) then isBlocked = true break end
+                end
+                if not isBlocked then
+                    WorldCache.Mobs[obj] = hum
+                end
+            end
         elseif obj:IsA("BasePart") then
-            -- Búsqueda exclusiva de los spawns de las raids
             if name == "spawn" then
                 WorldCache.Spawns[obj] = true
             elseif name:find("portal") or name:find("exit_door") or name:find("door") then
@@ -312,31 +316,53 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- MOTOR 2: INTERFAZ BLINDADA (Cartas y Rejoin)
+-- MOTOR 2: INTERFAZ PROFUNDA (Botón Seguir)
 -- ==========================================
+local function fireButtonClick(gui)
+    local absPos = gui.AbsolutePosition
+    local absSize = gui.AbsoluteSize
+    if absPos.X > 0 and absSize.X > 0 then
+        pcall(function()
+            for _, conn in ipairs(getconnections(gui.MouseButton1Click)) do conn:Fire() end
+            for _, conn in ipairs(getconnections(gui.Activated)) do conn:Fire() end
+        end)
+        VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 1)
+        task.wait(0.05)
+        VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, false, game, 1)
+    end
+end
+
 task.spawn(function()
     while true do
         pcall(function()
+            -- 1. Auto-Seguir Profundo (Busca dentro de ImageButtons y TextLabels)
             if getgenv().ShiroHubState.AutoContinue then
                 for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
-                    if gui:IsA("TextButton") and gui.Visible then
-                        local text = gui.Text:lower()
-                        if (text:find("seguir") or text:find("continuar") or text:find("next")) and not text:find("salir") and not text:find("lobby") and not text:find("return") then
-                            local absPos = gui.AbsolutePosition
-                            local absSize = gui.AbsoluteSize
-                            if absPos.X > 0 and absSize.X > 0 then
-                                for _, conn in ipairs(getconnections(gui.MouseButton1Click)) do conn:Fire() end
-                                for _, conn in ipairs(getconnections(gui.Activated)) do conn:Fire() end
-                                VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 1)
-                                task.wait(0.1)
-                                VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, false, game, 1)
-                                task.wait(1.5)
+                    if (gui:IsA("TextButton") or gui:IsA("ImageButton")) and gui.Visible then
+                        local fullText = ""
+                        
+                        -- Extrae el texto propio si es TextButton
+                        if gui:IsA("TextButton") then 
+                            fullText = gui.Text:lower() 
+                        end
+                        
+                        -- Extrae textos de los hijos por si usa etiquetas superpuestas
+                        for _, child in ipairs(gui:GetDescendants()) do
+                            if child:IsA("TextLabel") or child:IsA("TextBox") then
+                                fullText = fullText .. " " .. child.Text:lower()
                             end
+                        end
+                        
+                        -- Evalúa todo el texto encontrado en el botón
+                        if (fullText:find("seguir") or fullText:find("continuar") or fullText:find("next")) and not fullText:find("salir") and not fullText:find("lobby") then
+                            fireButtonClick(gui)
+                            task.wait(1.0)
                         end
                     end
                 end
             end
 
+            -- 2. Auto-Cartas
             if getgenv().ShiroHubState.AutoCards then
                 local foundCards = {}
                 for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
@@ -350,25 +376,17 @@ task.spawn(function()
                 
                 if #foundCards > 0 then
                     local randomCard = foundCards[math.random(1, #foundCards)]
-                    local absPos = randomCard.AbsolutePosition
-                    local absSize = randomCard.AbsoluteSize
-                    if absPos.X > 0 and absSize.X > 0 then
-                        for _, conn in ipairs(getconnections(randomCard.MouseButton1Click)) do conn:Fire() end
-                        for _, conn in ipairs(getconnections(randomCard.Activated)) do conn:Fire() end
-                        VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 1)
-                        task.wait(0.1)
-                        VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, false, game, 1)
-                        task.wait(1.5)
-                    end
+                    fireButtonClick(randomCard)
+                    task.wait(1.0)
                 end
             end
         end)
-        task.wait(1.0) -- Frecuencia ligera para ahorrar batería y CPU en móvil
+        task.wait(0.5) -- Acelerado ligeramente para ganar la carrera contra el lobby timer
     end
 end)
 
 -- ==========================================
--- MOTOR 3: COMBATE TÁCTICO Y TP AL SPAWN ACTIVO
+-- MOTOR 3: COMBATE TÁCTICO Y TP DIRECTO A SPAWN
 -- ==========================================
 task.spawn(function()
     while true do
@@ -380,7 +398,7 @@ task.spawn(function()
                 local bestTarget = nil
                 local minDistance = math.huge
                 
-                -- SELECCIONAR ÚNICAMENTE EL SPAWN MÁS CERCANO (Descartando los otros 3 lejanos)
+                -- Spawn Activo Cercano
                 local activeSpawn = nil
                 local minSpawnDist = math.huge
                 for obj, _ in pairs(WorldCache.Spawns) do
@@ -395,34 +413,23 @@ task.spawn(function()
                     end
                 end
                 
-                -- Evaluación de Mobs
+                -- Caza Universal
                 if getgenv().ShiroHubState.AutoFarm then
                     for obj, hum in pairs(WorldCache.Mobs) do
                         if obj and obj.Parent and hum and (hum.Health > 0) then
-                            local name = obj.Name:lower()
-                            local isIgnored = false
-                            
-                            if obj == char or name:find("player") or name:find(player.Name:lower()) then isIgnored = true end
-                            for _, ig in ipairs(ignoreMobs) do
-                                if name:find(ig) then isIgnored = true break end
-                            end
-
-                            if not isIgnored then
-                                isEnemyAlive = true
-                                local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("PrimaryPart") or (obj:IsA("BasePart") and obj)
-                                if root then
-                                    local dist = math.huge
-                                    -- RADAR DEFENSIVO: Si estamos en raid, defiende el spawn activo cercano
-                                    if getgenv().ShiroHubState.AutoTree and activeSpawn then
-                                        dist = (activeSpawn.Position - root.Position).Magnitude
-                                    else
-                                        dist = (hrp.Position - root.Position).Magnitude
-                                    end
-                                    
-                                    if dist < minDistance then
-                                        minDistance = dist
-                                        bestTarget = root
-                                    end
+                            isEnemyAlive = true
+                            local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("PrimaryPart") or (obj:IsA("BasePart") and obj)
+                            if root then
+                                local dist = math.huge
+                                if getgenv().ShiroHubState.AutoTree and activeSpawn then
+                                    dist = (activeSpawn.Position - root.Position).Magnitude
+                                else
+                                    dist = (hrp.Position - root.Position).Magnitude
+                                end
+                                
+                                if dist < minDistance then
+                                    minDistance = dist
+                                    bestTarget = root
                                 end
                             end
                         else
@@ -467,10 +474,10 @@ task.spawn(function()
                         task.wait(1.0)
                         VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
                         
-                    -- TP INSTANTÁNEO ÚNICAMENTE AL SPAWN ACTIVO CERCANO
+                    -- TP EXACTO AL CENTRO DEL CÍRCULO (3 studs arriba para no caer)
                     elseif getgenv().ShiroHubState.AutoTree and activeSpawn then
                         if (hrp.Position - activeSpawn.Position).Magnitude > 3 then
-                            hrp.CFrame = activeSpawn.CFrame * CFrame.new(0, 2.5, 0)
+                            hrp.CFrame = activeSpawn.CFrame * CFrame.new(0, 3, 0)
                         else
                             VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
                             task.wait(0.1)
