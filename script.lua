@@ -1,5 +1,5 @@
 --[[
-    Shiro Hub [v2.2] - Estados Independientes por Pestaña, Modo Dungeon Puro y Anti-Void
+    Shiro Hub [v2.3] - Estabilidad Total (Base v1.9), Anti-Void y Cero TP a Botones del Mapa
 ]]
 
 local Players = game:GetService("Players")
@@ -21,7 +21,6 @@ if not getgenv().ShiroHubState then
             AutoUlti = true,
             BreakObjects = false,
             AutoNextZone = true,
-            AutoButtons = true,
             AutoContinue = true
         },
         Raid = {
@@ -34,7 +33,6 @@ if not getgenv().ShiroHubState then
     }
 end
 
--- Pestaña activa actual (1 = Dungeon, 2 = Raid)
 local currentTab = 1
 
 pcall(function()
@@ -64,7 +62,7 @@ player.CharacterAdded:Connect(function(char)
 end)
 
 -- ==========================================
--- INTERFAZ GRÁFICA (HUD) SHIRO HUB v2.2
+-- INTERFAZ GRÁFICA (HUD) SHIRO HUB v2.3
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "ShiroSmartHub"
@@ -97,7 +95,7 @@ UICorner_Top.Parent = TopBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -70, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "Shiro Hub [v2.2]"
+Title.Text = "Shiro Hub [v2.3]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -192,14 +190,12 @@ local function createTabButton(parent, text, yPos, category, stateKey, activeCol
     return btn
 end
 
--- Botones independientes por categoría
 createTabButton(DungeonTab, "Auto-Farm Universal", 0, "Dungeon", "AutoFarm", colorOn)
 createTabButton(DungeonTab, "Auto-Cartas", 35, "Dungeon", "AutoCards", colorOn)
 createTabButton(DungeonTab, "Auto-Habilidades (No Dash)", 70, "Dungeon", "AutoUlti", colorOn)
 createTabButton(DungeonTab, "Romper Cofres", 105, "Dungeon", "BreakObjects", colorOn)
 createTabButton(DungeonTab, "Auto-Avanzar Portales", 140, "Dungeon", "AutoNextZone", colorOn)
-createTabButton(DungeonTab, "Auto-Botones Jefes", 175, "Dungeon", "AutoButtons", colorOn)
-createTabButton(DungeonTab, "Auto-Seguir Partida", 210, "Dungeon", "AutoContinue", colorOn)
+createTabButton(DungeonTab, "Auto-Seguir Partida", 175, "Dungeon", "AutoContinue", colorOn)
 
 createTabButton(RaidTab, "Auto-Farm Universal", 0, "Raid", "AutoFarm", raidColorOn)
 createTabButton(RaidTab, "Auto-Cartas", 35, "Raid", "AutoCards", raidColorOn)
@@ -256,8 +252,7 @@ CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 local WorldCache = {
     Mobs = {},
     Spawns = {},
-    Portal = nil,
-    Button = nil
+    Portal = nil
 }
 
 local function classifyObject(obj)
@@ -284,11 +279,8 @@ local function classifyObject(obj)
                 WorldCache.Spawns[obj] = true
             elseif name:find("portal") or name:find("exit_door") or name:find("door") then
                 WorldCache.Portal = obj
-            elseif (name:find("button") or name:find("switch") or name:find("lever")) and not name:find("chest") then
-                WorldCache.Button = obj
             end
             
-            -- Detecta cofres si está activo en Dungeon
             local isChest = false
             for _, chest in ipairs(chestNames) do
                 if name:find(chest) and not name:find("black") and not name:find("key") then
@@ -318,7 +310,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- MOTOR 2: AUTO-BOTONES DE UI
+-- MOTOR 2: AUTO-BOTONES DE UI (LIMPIO)
 -- ==========================================
 local function fireButtonClick(gui)
     local absPos = gui.AbsolutePosition
@@ -326,7 +318,6 @@ local function fireButtonClick(gui)
     if absPos.X > 0 and absSize.X > 0 then
         pcall(function()
             for _, conn in ipairs(getconnections(gui.MouseButton1Click)) do conn:Fire() end
-            for _, conn in ipairs(getconnections(gui.MouseButton1Down)) do conn:Fire() end
             for _, conn in ipairs(getconnections(gui.Activated)) do conn:Fire() end
         end)
         VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 1)
@@ -356,13 +347,7 @@ task.spawn(function()
                         
                         if (combinedText:find("repetir") or combinedText:find("replay") or combinedText:find("seguir") or combinedText:find("continuar") or combinedText:find("next") or combinedText:find("retry"))
                            and not combinedText:find("salir") and not combinedText:find("lobby") then
-                            
-                            if gui:IsA("TextButton") or gui:IsA("ImageButton") then
-                                fireButtonClick(gui)
-                            else
-                                local parentBtn = gui:FindFirstAncestorWhichIsA("TextButton") or gui:FindFirstAncestorWhichIsA("ImageButton")
-                                if parentBtn then fireButtonClick(parentBtn) else fireButtonClick(gui) end
-                            end
+                            fireButtonClick(gui)
                             task.wait(1.0)
                         end
                     end
@@ -386,12 +371,12 @@ task.spawn(function()
                 end
             end
         end)
-        task.wait(1.0) 
+        task.wait(0.4) 
     end
 end)
 
 -- ==========================================
--- MOTOR 3: COMBATE (DUNGEON PURO / RAID)
+-- MOTOR 3: COMBATE (ESTABLE Y PURO)
 -- ==========================================
 task.spawn(function()
     while true do
@@ -408,7 +393,7 @@ task.spawn(function()
                 
                 local activeSpawn = nil
                 local minSpawnDist = math.huge
-                if currentTab == 2 then -- Solo busca spawn en Raids
+                if currentTab == 2 then
                     for obj, _ in pairs(WorldCache.Spawns) do
                         if obj and obj.Parent then
                             local sDist = (hrp.Position - obj.Position).Magnitude
@@ -426,7 +411,6 @@ task.spawn(function()
                     for obj, data in pairs(WorldCache.Mobs) do
                         if obj and obj.Parent and data.Root and data.Root.Parent and (data.IsChest or data.Humanoid.Health > 0) then
                             
-                            -- Si es cofre pero estamos en Raid o con BreakObjects apagado en Dungeon, lo omite
                             if data.IsChest and (currentTab == 2 or not getgenv().ShiroHubState.Dungeon.BreakObjects) then
                                 continue
                             end
@@ -456,7 +440,6 @@ task.spawn(function()
                 end
                 
                 if WorldCache.Portal and not WorldCache.Portal.Parent then WorldCache.Portal = nil end
-                if WorldCache.Button and not WorldCache.Button.Parent then WorldCache.Button = nil end
 
                 if bestTarget and isEnemyAlive then
                     local targetPos = bestTarget.Position
@@ -474,7 +457,7 @@ task.spawn(function()
                         local safePos = targetPos + (offsetDir * 3) + Vector3.new(0, 3.5, 0)
                         hrp.CFrame = CFrame.new(safePos, Vector3.new(targetPos.X, safePos.Y, targetPos.Z))
                     else
-                        hrp.CFrame = CFrame.new(hrp.Position, Vector3.new(targetPos.X, safePos.Y, targetPos.Z))
+                        hrp.CFrame = CFrame.new(hrp.Position, Vector3.new(targetPos.X, hrp.Position.Y, targetPos.Z))
                     end
                     
                     VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
@@ -490,23 +473,15 @@ task.spawn(function()
                     end
                 
                 elseif not isEnemyAlive then
-                    -- LÓGICA EXCLUSIVA DE DUNGEON (Portales y Botones de Jefes)
+                    -- DUNGEON: Solo avanza por portales, sin tocar botones de palancas del mapa
                     if currentTab == 1 then
                         if activeConfig.AutoNextZone and WorldCache.Portal then
                             if (hrp.Position - WorldCache.Portal.Position).Magnitude > 4 then
                                 hrp.CFrame = CFrame.new(WorldCache.Portal.Position + Vector3.new(0, 3, 0))
                             end
-                        elseif activeConfig.AutoButtons and WorldCache.Button then
-                            if (hrp.Position - WorldCache.Button.Position).Magnitude > 4 then
-                                hrp.CFrame = CFrame.new(WorldCache.Button.Position + Vector3.new(0, 3, 0))
-                            end
-                            task.wait(0.2)
-                            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-                            task.wait(1.0)
-                            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
                         end
                         
-                    -- LÓGICA EXCLUSIVA DE RAID (Círculo Morado)
+                    -- RAID: Círculo morado
                     elseif currentTab == 2 then
                         if activeConfig.AutoTree and activeSpawn then
                             local spawnPos = activeSpawn.Position
