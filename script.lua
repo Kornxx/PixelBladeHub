@@ -1,5 +1,5 @@
 --[[
-    Shiro Hub [v3.3] - Botones Exclusivos para la Sala Final, Inicio Minimizado y Anti-Void
+    Shiro Hub [v3.5] - Estabilidad Definitiva en Dungeons, Inicio Minimizado y Anti-Void
 ]]
 
 local Players = game:GetService("Players")
@@ -25,7 +25,6 @@ if not getgenv().ShiroHubState then
             AutoUlti = true,
             BreakObjects = false,
             AutoNextZone = true,
-            AutoButtons = true,
             AutoContinue = true
         },
         Raid = {
@@ -99,7 +98,7 @@ UICorner_Top.Parent = TopBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -70, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "Shiro Hub [v3.3]"
+Title.Text = "Shiro Hub [v3.5]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -201,8 +200,7 @@ createTabButton(DungeonTab, "Auto-Cartas", 35, "Dungeon", "AutoCards", colorOn)
 createTabButton(DungeonTab, "Auto-Habilidades (No Dash)", 70, "Dungeon", "AutoUlti", colorOn)
 createTabButton(DungeonTab, "Romper Cofres", 105, "Dungeon", "BreakObjects", colorOn)
 createTabButton(DungeonTab, "Auto-Avanzar Portales", 140, "Dungeon", "AutoNextZone", colorOn)
-createTabButton(DungeonTab, "Auto-Botones Jefes", 175, "Dungeon", "AutoButtons", colorOn)
-createTabButton(DungeonTab, "Auto-Seguir Partida", 210, "Dungeon", "AutoContinue", colorOn)
+createTabButton(DungeonTab, "Auto-Seguir Partida", 175, "Dungeon", "AutoContinue", colorOn)
 
 createTabButton(RaidTab, "Auto-Farm Universal", 0, "Raid", "AutoFarm", raidColorOn)
 createTabButton(RaidTab, "Auto-Cartas", 35, "Raid", "AutoCards", raidColorOn)
@@ -261,8 +259,7 @@ CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 local WorldCache = {
     Mobs = {},
     Spawns = {},
-    Portal = nil,
-    Button = nil
+    Portal = nil
 }
 
 local function classifyObject(obj)
@@ -289,8 +286,6 @@ local function classifyObject(obj)
                 WorldCache.Spawns[obj] = true
             elseif name:find("portal") or name:find("exit_door") or name:find("door") then
                 WorldCache.Portal = obj
-            elseif (name:find("button") or name:find("switch") or name:find("lever")) and not name:find("chest") then
-                WorldCache.Button = obj
             end
             
             local isChest = false
@@ -387,7 +382,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- MOTOR 3: COMBATE CON CONTROL DE SALA FINAL
+-- MOTOR 3: COMBATE LIMPIO Y SIN TROLLS DE BOTONES
 -- ==========================================
 task.spawn(function()
     while true do
@@ -450,26 +445,6 @@ task.spawn(function()
                     end
                 end
                 
-                -- CONTADOR DE ENEMIGOS VIVOS EN LA ZONA ACTUAL
-                local enemyCount = 0
-                for _, data in pairs(WorldCache.Mobs) do
-                    if data and not data.IsChest and data.Humanoid and data.Humanoid.Health > 0 then
-                        enemyCount = enemyCount + 1
-                    end
-                end
-
-                -- REGLA DE LA SALA FINAL: El botón solo se activa si ya no quedan enemigos en la sala (es la penúltima/última fase para abrir el paso)
-                if currentTab == 1 and activeConfig.AutoButtons and WorldCache.Button and WorldCache.Button.Parent and enemyCount == 0 then
-                    if (hrp.Position - WorldCache.Button.Position).Magnitude > 4 then
-                        hrp.CFrame = CFrame.new(WorldCache.Button.Position + Vector3.new(0, 3, 0))
-                    end
-                    task.wait(0.2)
-                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-                    task.wait(1.0)
-                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-                    return
-                end
-
                 if WorldCache.Portal and not WorldCache.Portal.Parent then WorldCache.Portal = nil end
 
                 if bestTarget and isEnemyAlive then
