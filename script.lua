@@ -1,5 +1,5 @@
 --[[
-    Shiro Hub [v2.4] - Filtro Anticofré Negro, Estados Independientes y Anti-Void
+    Shiro Hub [v2.5] - Filtro Estricto Solo "Chest", Estados Independientes y Anti-Void
 ]]
 
 local Players = game:GetService("Players")
@@ -43,7 +43,6 @@ pcall(function()
     end
 end)
 
-local chestNames = {"chest", "crate"}
 local ignoreMobs = {
     "necromancer", "tutorial_clyde", "ally", "summon", "pet", "familiar", 
     "black_chest", "locked", "key_chest", "boss_chest", "key", "black", "dummy", "statue", "decora", "npc"
@@ -61,7 +60,7 @@ player.CharacterAdded:Connect(function(char)
 end)
 
 -- ==========================================
--- INTERFAZ GRÁFICA (HUD) SHIRO HUB v2.4
+-- INTERFAZ GRÁFICA (HUD) SHIRO HUB v2.5
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "ShiroSmartHub"
@@ -94,7 +93,7 @@ UICorner_Top.Parent = TopBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -70, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "Shiro Hub [v2.4]"
+Title.Text = "Shiro Hub [v2.5]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -280,20 +279,10 @@ local function classifyObject(obj)
                 WorldCache.Portal = obj
             end
             
-            -- FILTRO ANTICOFRE NEGRO / INMORTAL
+            -- FILTRO ESTRICTO: ÚNICAMENTE COFRES COMUNES (Que contengan "chest" y nada de "black" o "locked")
             local isChest = false
-            for _, chest in ipairs(chestNames) do
-                if name:find(chest) then
-                    isChest = true 
-                    break
-                end
-            end
-            
-            -- Si es cofre pero contiene "black" o "locked", se descarta por completo
-            if isChest then
-                if name:find("black") or name:find("locked") or name:find("key") then
-                    isChest = false
-                end
+            if name:find("chest") and not name:find("black") and not name:find("locked") and not name:find("key") then
+                isChest = true
             end
 
             if isChest then
