@@ -1,5 +1,5 @@
 --[[
-    Shiro Hub [v1.7] - Fix Bucle Infinito (Botón Repetir), Anti-Void y Filtro NPC
+    Shiro Hub [v1.9] - Optimización de Energía UI, Fix Botones, Anti-Void y Filtro NPC
 ]]
 
 local Players = game:GetService("Players")
@@ -54,7 +54,7 @@ player.CharacterAdded:Connect(function(char)
 end)
 
 -- ==========================================
--- INTERFAZ GRÁFICA (HUD) SHIRO HUB v1.7
+-- INTERFAZ GRÁFICA (HUD) SHIRO HUB v1.9
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "ShiroSmartHub"
@@ -87,7 +87,7 @@ UICorner_Top.Parent = TopBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -70, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "Shiro Hub [v1.7]"
+Title.Text = "Shiro Hub [v1.9]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -341,7 +341,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- MOTOR 2: AUTO-BOTONES DE UI (DICCIONARIO MEJORADO)
+-- MOTOR 2: AUTO-BOTONES DE UI (ESCANEO BALANCEADO 2.5/s)
 -- ==========================================
 local function fireButtonClick(gui)
     local absPos = gui.AbsolutePosition
@@ -373,11 +373,10 @@ task.spawn(function()
                             end
                         end
                         
-                        -- FIX APLICADO: Se añadió "repetir" al diccionario de caza de botones
                         if (fullText:find("seguir") or fullText:find("continuar") or fullText:find("next") or fullText:find("retry") or fullText:find("repetir") or fullText:find("replay")) 
                            and not fullText:find("salir") and not fullText:find("lobby") then
                             fireButtonClick(gui)
-                            task.wait(1.0)
+                            task.wait(0.5) 
                         end
                     end
                 end
@@ -396,11 +395,12 @@ task.spawn(function()
                 
                 if #foundCards > 0 then
                     fireButtonClick(foundCards[math.random(1, #foundCards)])
-                    task.wait(1.0)
+                    task.wait(0.5)
                 end
             end
         end)
-        task.wait(1.0) 
+        -- LOOP BALANCEADO A 0.4s (2.5 veces por segundo, ideal para ahorrar batería en móvil)
+        task.wait(0.4) 
     end
 end)
 
