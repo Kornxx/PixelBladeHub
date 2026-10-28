@@ -1,5 +1,5 @@
 --[[
-    Shiro Hub [v1.6] - Filtro NPC, Delay Inicial, Anti-Void (Caídas)
+    Shiro Hub [v1.7] - Fix Bucle Infinito (Botón Repetir), Anti-Void y Filtro NPC
 ]]
 
 local Players = game:GetService("Players")
@@ -54,7 +54,7 @@ player.CharacterAdded:Connect(function(char)
 end)
 
 -- ==========================================
--- INTERFAZ GRÁFICA (HUD) SHIRO HUB v1.6
+-- INTERFAZ GRÁFICA (HUD) SHIRO HUB v1.7
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "ShiroSmartHub"
@@ -87,7 +87,7 @@ UICorner_Top.Parent = TopBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -70, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "Shiro Hub [v1.6]"
+Title.Text = "Shiro Hub [v1.7]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -294,8 +294,6 @@ local function classifyObject(obj)
                         if name:find(ig) then return end
                     end
                     
-                    -- FILTRO DEFINITIVO ANTI-NPC (Como Robert):
-                    -- Si el modelo tiene un menú de interacción, es un vendedor/NPC aliado. Lo ignora.
                     if obj:FindFirstChildWhichIsA("ProximityPrompt", true) then return end
                     if obj:FindFirstChildWhichIsA("Dialog", true) then return end
                     
@@ -343,7 +341,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- MOTOR 2: AUTO-BOTONES DE UI
+-- MOTOR 2: AUTO-BOTONES DE UI (DICCIONARIO MEJORADO)
 -- ==========================================
 local function fireButtonClick(gui)
     local absPos = gui.AbsolutePosition
@@ -362,7 +360,7 @@ end
 task.spawn(function()
     while true do
         pcall(function()
-            if not safeToFarm then return end -- Inmunidad mientras carga
+            if not safeToFarm then return end 
             
             if getgenv().ShiroHubState.AutoContinue then
                 for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
@@ -375,7 +373,8 @@ task.spawn(function()
                             end
                         end
                         
-                        if (fullText:find("seguir") or fullText:find("continuar") or fullText:find("next") or fullText:find("retry")) 
+                        -- FIX APLICADO: Se añadió "repetir" al diccionario de caza de botones
+                        if (fullText:find("seguir") or fullText:find("continuar") or fullText:find("next") or fullText:find("retry") or fullText:find("repetir") or fullText:find("replay")) 
                            and not fullText:find("salir") and not fullText:find("lobby") then
                             fireButtonClick(gui)
                             task.wait(1.0)
@@ -411,7 +410,7 @@ end)
 task.spawn(function()
     while true do
         pcall(function()
-            if not safeToFarm then return end -- Inmunidad al inicio de partida
+            if not safeToFarm then return end 
             
             local char = player.Character
             if char and char:FindFirstChild("HumanoidRootPart") then
@@ -438,7 +437,6 @@ task.spawn(function()
                     for obj, data in pairs(WorldCache.Mobs) do
                         if obj and obj.Parent and data.Root and data.Root.Parent and (data.IsChest or data.Humanoid.Health > 0) then
                             
-                            -- ANTI-VOID: Si el monstruo se cayó del mapa, lo elimina de la caché y no lo persigue
                             if data.Root.Position.Y < -50 then
                                 WorldCache.Mobs[obj] = nil
                                 continue
@@ -469,17 +467,15 @@ task.spawn(function()
                     local targetPos = bestTarget.Position
                     local distToPlayer = (hrp.Position - targetPos).Magnitude
                     
-                    -- FÍSICA APLANADA: Nunca inclina el cuerpo del personaje (Previene caer al vacío)
                     if distToPlayer > 5 then
                         local offsetDir = (hrp.Position - targetPos)
-                        offsetDir = Vector3.new(offsetDir.X, 0, offsetDir.Z) -- Aplanar a X y Z puros
+                        offsetDir = Vector3.new(offsetDir.X, 0, offsetDir.Z) 
                         if offsetDir.Magnitude < 0.1 then 
                             offsetDir = Vector3.new(0, 0, 1) 
                         else 
                             offsetDir = offsetDir.Unit 
                         end
                         
-                        -- Posición segura: 3 studs lejos, 3.5 studs arriba, mirando al objetivo recto
                         local safePos = targetPos + (offsetDir * 3) + Vector3.new(0, 3.5, 0)
                         hrp.CFrame = CFrame.new(safePos, Vector3.new(targetPos.X, safePos.Y, targetPos.Z))
                     else
