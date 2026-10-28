@@ -1,5 +1,5 @@
 --[[
-    Shiro Hub [v2.7] - Inicio Minimizado Automático, Limpieza de HUD y Filtros
+    Shiro Hub [v2.9] - Botones de Jefes Condicionales (Solo sin enemigos), Inicio Minimizado y Anti-Void
 ]]
 
 local Players = game:GetService("Players")
@@ -25,6 +25,7 @@ if not getgenv().ShiroHubState then
             AutoUlti = true,
             BreakObjects = false,
             AutoNextZone = true,
+            AutoButtons = true,
             AutoContinue = true
         },
         Raid = {
@@ -73,7 +74,6 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
--- INICIA MINIMIZADO POR DEFECTO AL INYECTAR / REJOIN (Altura de 35 en lugar de 310)
 MainFrame.Size = UDim2.new(0, 250, 0, 35)
 MainFrame.Position = UDim2.new(0.5, -125, 0.5, -155)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
@@ -99,7 +99,7 @@ UICorner_Top.Parent = TopBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -70, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "Shiro Hub [v2.7]"
+Title.Text = "Shiro Hub [v2.9]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -110,7 +110,7 @@ Title.Parent = TopBar
 local MinimizeBtn = Instance.new("TextButton")
 MinimizeBtn.Size = UDim2.new(0, 25, 0, 25)
 MinimizeBtn.Position = UDim2.new(1, -60, 0, 5)
-MinimizeBtn.Text = "+" -- Inicia en "+" ya que arranca minimizado
+MinimizeBtn.Text = "+"
 MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 MinimizeBtn.Font = Enum.Font.GothamBold
 MinimizeBtn.TextSize = 16
@@ -133,7 +133,7 @@ local TabBar = Instance.new("Frame")
 TabBar.Size = UDim2.new(1, -20, 0, 30)
 TabBar.Position = UDim2.new(0, 10, 0, 45)
 TabBar.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-TabBar.Visible = false -- Oculto al iniciar por el estado minimizado
+TabBar.Visible = false
 TabBar.Parent = MainFrame
 Instance.new("UICorner", TabBar).CornerRadius = UDim.new(0, 6)
 
@@ -201,7 +201,8 @@ createTabButton(DungeonTab, "Auto-Cartas", 35, "Dungeon", "AutoCards", colorOn)
 createTabButton(DungeonTab, "Auto-Habilidades (No Dash)", 70, "Dungeon", "AutoUlti", colorOn)
 createTabButton(DungeonTab, "Romper Cofres", 105, "Dungeon", "BreakObjects", colorOn)
 createTabButton(DungeonTab, "Auto-Avanzar Portales", 140, "Dungeon", "AutoNextZone", colorOn)
-createTabButton(DungeonTab, "Auto-Seguir Partida", 175, "Dungeon", "AutoContinue", colorOn)
+createTabButton(DungeonTab, "Auto-Botones Jefes", 175, "Dungeon", "AutoButtons", colorOn)
+createTabButton(DungeonTab, "Auto-Seguir Partida", 210, "Dungeon", "AutoContinue", colorOn)
 
 createTabButton(RaidTab, "Auto-Farm Universal", 0, "Raid", "AutoFarm", raidColorOn)
 createTabButton(RaidTab, "Auto-Cartas", 35, "Raid", "AutoCards", raidColorOn)
@@ -231,7 +232,6 @@ TabRaidBtn.MouseButton1Click:Connect(function()
     TabDungeonBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
 end)
 
--- ESTADO INICIAL: Arranca minimizado (True)
 local isMinimized = true 
 MinimizeBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
@@ -261,7 +261,8 @@ CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 local WorldCache = {
     Mobs = {},
     Spawns = {},
-    Portal = nil
+    Portal = nil,
+    Button = nil
 }
 
 local function classifyObject(obj)
@@ -288,6 +289,8 @@ local function classifyObject(obj)
                 WorldCache.Spawns[obj] = true
             elseif name:find("portal") or name:find("exit_door") or name:find("door") then
                 WorldCache.Portal = obj
+            elseif (name:find("button") or name:find("switch") or name:find("lever")) and not name:find("chest") then
+                WorldCache.Button = obj
             end
             
             local isChest = false
@@ -384,7 +387,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- MOTOR 3: COMBATE
+-- MOTOR 3: COMBATE CON BOTÓN CONDICIONAL DE JEFE
 -- ==========================================
 task.spawn(function()
     while true do
@@ -448,6 +451,7 @@ task.spawn(function()
                 end
                 
                 if WorldCache.Portal and not WorldCache.Portal.Parent then WorldCache.Portal = nil end
+                if WorldCache.Button and not WorldCache.Button.Parent then WorldCache.Button = nil end
 
                 if bestTarget and isEnemyAlive then
                     local targetPos = bestTarget.Position
@@ -465,7 +469,7 @@ task.spawn(function()
                         local safePos = targetPos + (offsetDir * 3) + Vector3.new(0, 3.5, 0)
                         hrp.CFrame = CFrame.new(safePos, Vector3.new(targetPos.X, safePos.Y, targetPos.Z))
                     else
-                        hrp.CFrame = CFrame.new(hrp.Position, Vector3.new(targetPos.X, hrp.Position.Y, targetPos.Z))
+                        hrp.CFrame = CFrame.new(hrp.Position, Vector3.new(targetPos.X, safePos.Y, targetPos.Z))
                     end
                     
                     VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
@@ -481,8 +485,17 @@ task.spawn(function()
                     end
                 
                 elseif not isEnemyAlive then
+                    -- SOLO SE ACTIVA EL BOTÓN CUANDO NO QUEDA NINGÚN ENEMIGO VIVO EN LA ZONA
                     if currentTab == 1 then
-                        if activeConfig.AutoNextZone and WorldCache.Portal then
+                        if activeConfig.AutoButtons and WorldCache.Button then
+                            if (hrp.Position - WorldCache.Button.Position).Magnitude > 4 then
+                                hrp.CFrame = CFrame.new(WorldCache.Button.Position + Vector3.new(0, 3, 0))
+                            end
+                            task.wait(0.2)
+                            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                            task.wait(1.0)
+                            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                        elseif activeConfig.AutoNextZone and WorldCache.Portal then
                             if (hrp.Position - WorldCache.Portal.Position).Magnitude > 4 then
                                 hrp.CFrame = CFrame.new(WorldCache.Portal.Position + Vector3.new(0, 3, 0))
                             end
