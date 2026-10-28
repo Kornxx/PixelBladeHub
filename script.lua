@@ -1,5 +1,5 @@
 --[[
-    Shiro Hub [v3.5] - Estabilidad Definitiva en Dungeons, Inicio Minimizado y Anti-Void
+    Shiro Hub [v3.8] - Velocidad Balanceada, Protección para Móvil y Filtro Anticofré
 ]]
 
 local Players = game:GetService("Players")
@@ -98,7 +98,7 @@ UICorner_Top.Parent = TopBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -70, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "Shiro Hub [v3.5]"
+Title.Text = "Shiro Hub [v3.8]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -289,8 +289,12 @@ local function classifyObject(obj)
             end
             
             local isChest = false
-            if name:find("chest") and not name:find("black") and not name:find("locked") and not name:find("key") then
-                isChest = true
+            if name:find("chest") then
+                if name:find("black") or name:find("locked") or name:find("key") then
+                    isChest = false
+                else
+                    isChest = true
+                end
             end
 
             if isChest then
@@ -302,7 +306,7 @@ end
 
 Workspace.DescendantAdded:Connect(function(obj)
     if obj:IsA("Model") or obj:IsA("BasePart") then
-        task.delay(0.5, function() classifyObject(obj) end)
+        task.delay(0.3, function() classifyObject(obj) end)
     end
 end)
 
@@ -354,7 +358,7 @@ task.spawn(function()
                         if (combinedText:find("repetir") or combinedText:find("replay") or combinedText:find("seguir") or combinedText:find("continuar") or combinedText:find("next") or combinedText:find("retry"))
                            and not combinedText:find("salir") and not combinedText:find("lobby") then
                             fireButtonClick(gui)
-                            task.wait(1.0)
+                            task.wait(0.8)
                         end
                     end
                 end
@@ -373,7 +377,7 @@ task.spawn(function()
                 
                 if #foundCards > 0 then
                     fireButtonClick(foundCards[math.random(1, #foundCards)])
-                    task.wait(1.0)
+                    task.wait(0.8)
                 end
             end
         end)
@@ -382,7 +386,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- MOTOR 3: COMBATE LIMPIO Y SIN TROLLS DE BOTONES
+-- MOTOR 3: COMBATE FLUIDO Y SEGURO (0.06s)
 -- ==========================================
 task.spawn(function()
     while true do
@@ -396,13 +400,14 @@ task.spawn(function()
                 local isEnemyAlive = false
                 local bestTarget = nil
                 local minDistance = math.huge
+                local hrpPos = hrp.Position
                 
                 local activeSpawn = nil
                 local minSpawnDist = math.huge
                 if currentTab == 2 then
                     for obj, _ in pairs(WorldCache.Spawns) do
                         if obj and obj.Parent then
-                            local sDist = (hrp.Position - obj.Position).Magnitude
+                            local sDist = (hrpPos - obj.Position).Magnitude
                             if sDist < minSpawnDist then
                                 minSpawnDist = sDist
                                 activeSpawn = obj
@@ -421,7 +426,8 @@ task.spawn(function()
                                 continue
                             end
                             
-                            if data.Root.Position.Y < -50 then
+                            local rootPos = data.Root.Position
+                            if rootPos.Y < -50 then
                                 WorldCache.Mobs[obj] = nil
                                 continue
                             end
@@ -430,9 +436,9 @@ task.spawn(function()
                             local dist = math.huge
                             
                             if currentTab == 2 and activeConfig.AutoTree and activeSpawn then
-                                dist = (activeSpawn.Position - data.Root.Position).Magnitude
+                                dist = (activeSpawn.Position - rootPos).Magnitude
                             else
-                                dist = (hrp.Position - data.Root.Position).Magnitude
+                                dist = (hrpPos - rootPos).Magnitude
                             end
                             
                             if dist < minDistance then
@@ -449,10 +455,10 @@ task.spawn(function()
 
                 if bestTarget and isEnemyAlive then
                     local targetPos = bestTarget.Position
-                    local distToPlayer = (hrp.Position - targetPos).Magnitude
+                    local distToPlayer = (hrpPos - targetPos).Magnitude
                     
                     if distToPlayer > 5 then
-                        local offsetDir = (hrp.Position - targetPos)
+                        local offsetDir = (hrpPos - targetPos)
                         offsetDir = Vector3.new(offsetDir.X, 0, offsetDir.Z) 
                         if offsetDir.Magnitude < 0.1 then 
                             offsetDir = Vector3.new(0, 0, 1) 
@@ -463,17 +469,17 @@ task.spawn(function()
                         local safePos = targetPos + (offsetDir * 3) + Vector3.new(0, 3.5, 0)
                         hrp.CFrame = CFrame.new(safePos, Vector3.new(targetPos.X, safePos.Y, targetPos.Z))
                     else
-                        hrp.CFrame = CFrame.new(hrp.Position, Vector3.new(targetPos.X, safePos.Y, targetPos.Z))
+                        hrp.CFrame = CFrame.new(hrpPos, Vector3.new(targetPos.X, hrpPos.Y, targetPos.Z))
                     end
                     
                     VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-                    task.wait(0.1)
+                    task.wait(0.05)
                     VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
                     
                     if activeConfig.AutoUlti then
                         VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
                         VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.R, false, game)
-                        task.wait(0.05)
+                        task.wait(0.03)
                         VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
                         VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.R, false, game)
                     end
@@ -481,18 +487,18 @@ task.spawn(function()
                 elseif not isEnemyAlive then
                     if currentTab == 1 then
                         if activeConfig.AutoNextZone and WorldCache.Portal then
-                            if (hrp.Position - WorldCache.Portal.Position).Magnitude > 4 then
+                            if (hrpPos - WorldCache.Portal.Position).Magnitude > 4 then
                                 hrp.CFrame = CFrame.new(WorldCache.Portal.Position + Vector3.new(0, 3, 0))
                             end
                         end
                     elseif currentTab == 2 then
                         if activeConfig.AutoTree and activeSpawn then
                             local spawnPos = activeSpawn.Position
-                            if (hrp.Position - spawnPos).Magnitude > 3 then
+                            if (hrpPos - spawnPos).Magnitude > 3 then
                                 hrp.CFrame = CFrame.new(spawnPos + Vector3.new(0, 3.5, 0))
                             else
                                 VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-                                task.wait(0.1)
+                                task.wait(0.05)
                                 VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
                             end
                         end
@@ -500,6 +506,6 @@ task.spawn(function()
                 end
             end
         end)
-        task.wait(0.1)
+        task.wait(0.06) -- Tiempo seguro y fluido para celular
     end
 end)
