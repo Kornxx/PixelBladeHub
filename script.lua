@@ -1,5 +1,5 @@
 --[[
-    Shiro Hub [v1.5] - Física Absoluta, Filtro Anti-Estatuas y Rendimiento Máximo
+    Shiro Hub [v1.6] - Filtro NPC, Delay Inicial, Anti-Void (Caídas)
 ]]
 
 local Players = game:GetService("Players")
@@ -41,8 +41,20 @@ local ignoreMobs = {
     "black_chest", "locked", "key_chest", "boss_chest", "key", "black", "dummy", "statue", "decora", "npc"
 }
 
+-- SISTEMA DE SEGURIDAD (Delay al reaparecer para evitar bugs de carga)
+local safeToFarm = false
+task.spawn(function()
+    task.wait(4)
+    safeToFarm = true
+end)
+player.CharacterAdded:Connect(function(char)
+    safeToFarm = false
+    task.wait(4)
+    safeToFarm = true
+end)
+
 -- ==========================================
--- INTERFAZ GRÁFICA (HUD) SHIRO HUB v1.5
+-- INTERFAZ GRÁFICA (HUD) SHIRO HUB v1.6
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "ShiroSmartHub"
@@ -75,7 +87,7 @@ UICorner_Top.Parent = TopBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -70, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "Shiro Hub [v1.5]"
+Title.Text = "Shiro Hub [v1.6]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -256,8 +268,7 @@ end)
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
 -- ==========================================
--- MOTOR 1: GESTOR DE MEMORIA (OPTIMIZACIÓN EXTREMA)
--- Aquí filtramos a las decoraciones para siempre
+-- MOTOR 1: GESTOR DE MEMORIA (FILTRO NPC Y ESTATUAS)
 -- ==========================================
 local WorldCache = {
     Mobs = {},
@@ -277,17 +288,17 @@ local function classifyObject(obj)
                 local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("PrimaryPart")
                 if root and root:IsA("BasePart") then
                     
-                    -- FILTRO DEFINITIVO ANTI-ESTATUAS/DECORACIONES: 
-                    -- Los monstruos reales de Roblox nunca están anclados (Anchored = false). 
-                    -- Si está anclado, es una estatua de madera/adorno.
                     if root.Anchored then return end
                     
-                    -- FILTRO DE NOMBRES ALIADOS
                     for _, ig in ipairs(ignoreMobs) do
                         if name:find(ig) then return end
                     end
                     
-                    -- Si sobrevive a los filtros, se guarda en caché limpia
+                    -- FILTRO DEFINITIVO ANTI-NPC (Como Robert):
+                    -- Si el modelo tiene un menú de interacción, es un vendedor/NPC aliado. Lo ignora.
+                    if obj:FindFirstChildWhichIsA("ProximityPrompt", true) then return end
+                    if obj:FindFirstChildWhichIsA("Dialog", true) then return end
+                    
                     WorldCache.Mobs[obj] = {Root = root, Humanoid = hum}
                 end
             end
@@ -316,7 +327,6 @@ local function classifyObject(obj)
     end)
 end
 
--- El delay(0.5) evita congelamientos cuando el juego carga muchos bloques de golpe
 Workspace.DescendantAdded:Connect(function(obj)
     if obj:IsA("Model") or obj:IsA("BasePart") then
         task.delay(0.5, function() classifyObject(obj) end)
@@ -333,7 +343,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- MOTOR 2: AUTO-BOTONES DE UI (CON FIX DE LOBBY)
+-- MOTOR 2: AUTO-BOTONES DE UI
 -- ==========================================
 local function fireButtonClick(gui)
     local absPos = gui.AbsolutePosition
@@ -352,6 +362,8 @@ end
 task.spawn(function()
     while true do
         pcall(function()
+            if not safeToFarm then return end -- Inmunidad mientras carga
+            
             if getgenv().ShiroHubState.AutoContinue then
                 for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
                     if (gui:IsA("TextButton") or gui:IsA("ImageButton")) and gui.Visible then
@@ -394,11 +406,13 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- MOTOR 3: COMBATE (CÁLCULOS ABSOLUTOS SIN BUG DE CAÍDA)
+-- MOTOR 3: COMBATE (FÍSICA ENDEREZADA Y ANTI-VACÍO)
 -- ==========================================
 task.spawn(function()
     while true do
         pcall(function()
+            if not safeToFarm then return end -- Inmunidad al inicio de partida
+            
             local char = player.Character
             if char and char:FindFirstChild("HumanoidRootPart") then
                 local hrp = char.HumanoidRootPart
@@ -406,7 +420,6 @@ task.spawn(function()
                 local bestTarget = nil
                 local minDistance = math.huge
                 
-                -- Detecta el Spawn Activo Más Cercano
                 local activeSpawn = nil
                 local minSpawnDist = math.huge
                 for obj, _ in pairs(WorldCache.Spawns) do
@@ -421,14 +434,19 @@ task.spawn(function()
                     end
                 end
                 
-                -- Itera SOBRE CACHÉ LIMPIA (0 Lag)
                 if getgenv().ShiroHubState.AutoFarm then
                     for obj, data in pairs(WorldCache.Mobs) do
                         if obj and obj.Parent and data.Root and data.Root.Parent and (data.IsChest or data.Humanoid.Health > 0) then
+                            
+                            -- ANTI-VOID: Si el monstruo se cayó del mapa, lo elimina de la caché y no lo persigue
+                            if data.Root.Position.Y < -50 then
+                                WorldCache.Mobs[obj] = nil
+                                continue
+                            end
+                            
                             isEnemyAlive = true
                             local dist = math.huge
                             
-                            -- Radar Defensa vs Radar Normal
                             if getgenv().ShiroHubState.AutoTree and activeSpawn then
                                 dist = (activeSpawn.Position - data.Root.Position).Magnitude
                             else
@@ -440,7 +458,7 @@ task.spawn(function()
                                 bestTarget = data.Root
                             end
                         else
-                            WorldCache.Mobs[obj] = nil -- Se auto-borra si murió
+                            WorldCache.Mobs[obj] = nil 
                         end
                     end
                 end
@@ -451,12 +469,21 @@ task.spawn(function()
                     local targetPos = bestTarget.Position
                     local distToPlayer = (hrp.Position - targetPos).Magnitude
                     
-                    -- FÍSICA ABSOLUTA: Crea un punto de anclaje flotante que ignora la rotación del objetivo
+                    -- FÍSICA APLANADA: Nunca inclina el cuerpo del personaje (Previene caer al vacío)
                     if distToPlayer > 5 then
-                        -- Se posiciona 3 studs alrededor usando coordenadas del mundo puro (Imposible bug de caída)
-                        hrp.CFrame = CFrame.lookAt(targetPos + Vector3.new(0, 0, 3), targetPos)
+                        local offsetDir = (hrp.Position - targetPos)
+                        offsetDir = Vector3.new(offsetDir.X, 0, offsetDir.Z) -- Aplanar a X y Z puros
+                        if offsetDir.Magnitude < 0.1 then 
+                            offsetDir = Vector3.new(0, 0, 1) 
+                        else 
+                            offsetDir = offsetDir.Unit 
+                        end
+                        
+                        -- Posición segura: 3 studs lejos, 3.5 studs arriba, mirando al objetivo recto
+                        local safePos = targetPos + (offsetDir * 3) + Vector3.new(0, 3.5, 0)
+                        hrp.CFrame = CFrame.new(safePos, Vector3.new(targetPos.X, safePos.Y, targetPos.Z))
                     else
-                        hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(targetPos.X, hrp.Position.Y, targetPos.Z))
+                        hrp.CFrame = CFrame.new(hrp.Position, Vector3.new(targetPos.X, hrp.Position.Y, targetPos.Z))
                     end
                     
                     VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
@@ -485,11 +512,9 @@ task.spawn(function()
                         task.wait(1.0)
                         VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
                         
-                    -- TP ABSOLUTO AL CÍRCULO MORADO
                     elseif getgenv().ShiroHubState.AutoTree and activeSpawn then
                         local spawnPos = activeSpawn.Position
                         if (hrp.Position - spawnPos).Magnitude > 3 then
-                            -- Matemáticas Absolutas: Ignora la rotación del círculo, solo usa su posición y suma 3.5 studs de altura
                             hrp.CFrame = CFrame.new(spawnPos + Vector3.new(0, 3.5, 0))
                         else
                             VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
