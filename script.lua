@@ -1,5 +1,5 @@
 --[[
-    Shiro Hub [v2.9] - Botones de Jefes Condicionales (Solo sin enemigos), Inicio Minimizado y Anti-Void
+    Shiro Hub [v3.0] - Prioridad Absoluta a Botones de Jefes, Minimizado y Anti-Void
 ]]
 
 local Players = game:GetService("Players")
@@ -99,7 +99,7 @@ UICorner_Top.Parent = TopBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -70, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "Shiro Hub [v2.9]"
+Title.Text = "Shiro Hub [v3.0]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -387,7 +387,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- MOTOR 3: COMBATE CON BOTÓN CONDICIONAL DE JEFE
+-- MOTOR 3: COMBATE CON PRIORIDAD ABSOLUTA A BOTONES DE JEFE
 -- ==========================================
 task.spawn(function()
     while true do
@@ -418,6 +418,18 @@ task.spawn(function()
                     end
                 end
                 
+                -- PRIORIDAD MÁXIMA DE BOTÓN: Si estamos en Dungeon, hay un botón disponible y está activada la opción, lo activa antes de hacer cualquier otra cosa
+                if currentTab == 1 and activeConfig.AutoButtons and WorldCache.Button and WorldCache.Button.Parent then
+                    if (hrp.Position - WorldCache.Button.Position).Magnitude > 4 then
+                        hrp.CFrame = CFrame.new(WorldCache.Button.Position + Vector3.new(0, 3, 0))
+                    end
+                    task.wait(0.2)
+                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                    task.wait(1.0)
+                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                    return -- Rompe el ciclo del motor para ejecutar la interacción del botón limpiamente
+                end
+
                 if activeConfig.AutoFarm then
                     for obj, data in pairs(WorldCache.Mobs) do
                         if obj and obj.Parent and data.Root and data.Root.Parent and (data.IsChest or data.Humanoid.Health > 0) then
@@ -451,7 +463,6 @@ task.spawn(function()
                 end
                 
                 if WorldCache.Portal and not WorldCache.Portal.Parent then WorldCache.Portal = nil end
-                if WorldCache.Button and not WorldCache.Button.Parent then WorldCache.Button = nil end
 
                 if bestTarget and isEnemyAlive then
                     local targetPos = bestTarget.Position
@@ -485,17 +496,8 @@ task.spawn(function()
                     end
                 
                 elseif not isEnemyAlive then
-                    -- SOLO SE ACTIVA EL BOTÓN CUANDO NO QUEDA NINGÚN ENEMIGO VIVO EN LA ZONA
                     if currentTab == 1 then
-                        if activeConfig.AutoButtons and WorldCache.Button then
-                            if (hrp.Position - WorldCache.Button.Position).Magnitude > 4 then
-                                hrp.CFrame = CFrame.new(WorldCache.Button.Position + Vector3.new(0, 3, 0))
-                            end
-                            task.wait(0.2)
-                            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-                            task.wait(1.0)
-                            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-                        elseif activeConfig.AutoNextZone and WorldCache.Portal then
+                        if activeConfig.AutoNextZone and WorldCache.Portal then
                             if (hrp.Position - WorldCache.Portal.Position).Magnitude > 4 then
                                 hrp.CFrame = CFrame.new(WorldCache.Portal.Position + Vector3.new(0, 3, 0))
                             end
