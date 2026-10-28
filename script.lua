@@ -1,5 +1,5 @@
 --[[
-    Shiro Hub [v2.3] - Estabilidad Total (Base v1.9), Anti-Void y Cero TP a Botones del Mapa
+    Shiro Hub [v2.4] - Filtro Anticofré Negro, Estados Independientes y Anti-Void
 ]]
 
 local Players = game:GetService("Players")
@@ -12,7 +12,6 @@ if CoreGui:FindFirstChild("ShiroSmartHub") then
     CoreGui.ShiroSmartHub:Destroy()
 end
 
--- ESTADOS SEPARADOS (Independientes para Dungeon y Raids)
 if not getgenv().ShiroHubState then
     getgenv().ShiroHubState = {
         Dungeon = {
@@ -62,7 +61,7 @@ player.CharacterAdded:Connect(function(char)
 end)
 
 -- ==========================================
--- INTERFAZ GRÁFICA (HUD) SHIRO HUB v2.3
+-- INTERFAZ GRÁFICA (HUD) SHIRO HUB v2.4
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "ShiroSmartHub"
@@ -95,7 +94,7 @@ UICorner_Top.Parent = TopBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -70, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "Shiro Hub [v2.3]"
+Title.Text = "Shiro Hub [v2.4]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -281,12 +280,22 @@ local function classifyObject(obj)
                 WorldCache.Portal = obj
             end
             
+            -- FILTRO ANTICOFRE NEGRO / INMORTAL
             local isChest = false
             for _, chest in ipairs(chestNames) do
-                if name:find(chest) and not name:find("black") and not name:find("key") then
-                    isChest = true break
+                if name:find(chest) then
+                    isChest = true 
+                    break
                 end
             end
+            
+            -- Si es cofre pero contiene "black" o "locked", se descarta por completo
+            if isChest then
+                if name:find("black") or name:find("locked") or name:find("key") then
+                    isChest = false
+                end
+            end
+
             if isChest then
                 WorldCache.Mobs[obj] = {Root = obj, Humanoid = {Health = 1}, IsChest = true}
             end
@@ -310,7 +319,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- MOTOR 2: AUTO-BOTONES DE UI (LIMPIO)
+-- MOTOR 2: AUTO-BOTONES DE UI
 -- ==========================================
 local function fireButtonClick(gui)
     local absPos = gui.AbsolutePosition
@@ -376,7 +385,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- MOTOR 3: COMBATE (ESTABLE Y PURO)
+-- MOTOR 3: COMBATE
 -- ==========================================
 task.spawn(function()
     while true do
@@ -457,7 +466,7 @@ task.spawn(function()
                         local safePos = targetPos + (offsetDir * 3) + Vector3.new(0, 3.5, 0)
                         hrp.CFrame = CFrame.new(safePos, Vector3.new(targetPos.X, safePos.Y, targetPos.Z))
                     else
-                        hrp.CFrame = CFrame.new(hrp.Position, Vector3.new(targetPos.X, hrp.Position.Y, targetPos.Z))
+                        hrp.CFrame = CFrame.new(hrp.Position, Vector3.new(targetPos.X, safePos.Y, targetPos.Z))
                     end
                     
                     VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
@@ -473,15 +482,12 @@ task.spawn(function()
                     end
                 
                 elseif not isEnemyAlive then
-                    -- DUNGEON: Solo avanza por portales, sin tocar botones de palancas del mapa
                     if currentTab == 1 then
                         if activeConfig.AutoNextZone and WorldCache.Portal then
                             if (hrp.Position - WorldCache.Portal.Position).Magnitude > 4 then
                                 hrp.CFrame = CFrame.new(WorldCache.Portal.Position + Vector3.new(0, 3, 0))
                             end
                         end
-                        
-                    -- RAID: Círculo morado
                     elseif currentTab == 2 then
                         if activeConfig.AutoTree and activeSpawn then
                             local spawnPos = activeSpawn.Position
