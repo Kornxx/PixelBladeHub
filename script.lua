@@ -1,5 +1,5 @@
 --[[
-    Shiro Hub [v1.9] - Optimización de Energía UI, Fix Botones, Anti-Void y Filtro NPC
+    Shiro Hub [v2.0] - Fix Definitivo Botón Repetir (UI Forzada), Anti-Void y Filtro NPC
 ]]
 
 local Players = game:GetService("Players")
@@ -12,7 +12,7 @@ if CoreGui:FindFirstChild("ShiroSmartHub") then
     CoreGui.ShiroSmartHub:Destroy()
 end
 
--- ESTADOS PERSISTENTES
+-- ESTADOS PERSISTENTES (Saltamos a v2.0 al llegar a v1.10 según regla)
 if not getgenv().ShiroHubState then
     getgenv().ShiroHubState = {
         AutoFarm = true,  
@@ -54,7 +54,7 @@ player.CharacterAdded:Connect(function(char)
 end)
 
 -- ==========================================
--- INTERFAZ GRÁFICA (HUD) SHIRO HUB v1.9
+-- INTERFAZ GRÁFICA (HUD) SHIRO HUB v2.0
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "ShiroSmartHub"
@@ -87,7 +87,7 @@ UICorner_Top.Parent = TopBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -70, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "Shiro Hub [v1.9]"
+Title.Text = "Shiro Hub [v2.0]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -341,15 +341,16 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- MOTOR 2: AUTO-BOTONES DE UI (ESCANEO BALANCEADO 2.5/s)
+-- MOTOR 2: AUTO-BOTONES DE UI (MOTOR FORZADO v2.0)
 -- ==========================================
-local function fireButtonClick(gui)
-    local absPos = gui.AbsolutePosition
-    local absSize = gui.AbsoluteSize
+local function forceClickElement(obj)
+    local absPos = obj.AbsolutePosition
+    local absSize = obj.AbsoluteSize
     if absPos.X > 0 and absSize.X > 0 then
         pcall(function()
-            for _, conn in ipairs(getconnections(gui.MouseButton1Click)) do conn:Fire() end
-            for _, conn in ipairs(getconnections(gui.Activated)) do conn:Fire() end
+            for _, conn in ipairs(getconnections(obj.MouseButton1Click)) do conn:Fire() end
+            for _, conn in ipairs(getconnections(obj.MouseButton1Down)) do conn:Fire() end
+            for _, conn in ipairs(getconnections(obj.Activated)) do conn:Fire() end
         end)
         VirtualInputManager:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 1)
         task.wait(0.05)
@@ -362,26 +363,45 @@ task.spawn(function()
         pcall(function()
             if not safeToFarm then return end 
             
+            -- ESCANEO PROFUNDO DE BOTONES DE RECOMPENSA / REPETIR
             if getgenv().ShiroHubState.AutoContinue then
                 for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
-                    if (gui:IsA("TextButton") or gui:IsA("ImageButton")) and gui.Visible then
-                        local fullText = ""
-                        if gui:IsA("TextButton") then fullText = gui.Text:lower() end
-                        for _, child in ipairs(gui:GetChildren()) do
-                            if child:IsA("TextLabel") or child:IsA("TextBox") then
-                                fullText = fullText .. " " .. child.Text:lower()
+                    if (gui:IsA("TextButton") or gui:IsA("ImageButton") or gui:IsA("Frame")) and gui.Visible then
+                        local combinedText = gui.Name:lower()
+                        
+                        if gui:IsA("TextButton") then 
+                            combinedText = combinedText .. " " .. gui.Text:lower() 
+                        end
+                        
+                        -- Extrae cualquier texto hijo o etiqueta superpuesta
+                        for _, desc in ipairs(gui:GetDescendants()) do
+                            if desc:IsA("TextLabel") or desc:IsA("TextBox") then
+                                combinedText = combinedText .. " " .. desc.Text:lower()
                             end
                         end
                         
-                        if (fullText:find("seguir") or fullText:find("continuar") or fullText:find("next") or fullText:find("retry") or fullText:find("repetir") or fullText:find("replay")) 
-                           and not fullText:find("salir") and not fullText:find("lobby") then
-                            fireButtonClick(gui)
-                            task.wait(0.5) 
+                        -- Caza de palabras clave de repetición / continuar
+                        if (combinedText:find("repetir") or combinedText:find("replay") or combinedText:find("seguir") or combinedText:find("continuar") or combinedText:find("next") or combinedText:find("retry"))
+                           and not combinedText:find("salir") and not combinedText:find("lobby") then
+                            
+                            -- Si el objeto encontrado no es un botón directamente, busca el botón padre o hijo interactuable
+                            if gui:IsA("TextButton") or gui:IsA("ImageButton") then
+                                forceClickElement(gui)
+                            else
+                                local parentBtn = gui:FindFirstAncestorWhichIsA("TextButton") or gui:FindFirstAncestorWhichIsA("ImageButton")
+                                if parentBtn then
+                                    forceClickElement(parentBtn)
+                                else
+                                    forceClickElement(gui)
+                                end
+                            end
+                            task.wait(1.0)
                         end
                     end
                 end
             end
 
+            -- AUTO-CARTAS
             if getgenv().ShiroHubState.AutoCards then
                 local foundCards = {}
                 for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
@@ -394,13 +414,13 @@ task.spawn(function()
                 end
                 
                 if #foundCards > 0 then
-                    fireButtonClick(foundCards[math.random(1, #foundCards)])
-                    task.wait(0.5)
+                    forceClickElement(foundCards[math.random(1, #foundCards)])
+                    task.wait(1.0)
                 end
             end
         end)
-        -- LOOP BALANCEADO A 0.4s (2.5 veces por segundo, ideal para ahorrar batería en móvil)
-        task.wait(0.4) 
+        -- VELOCIDAD ESTÁNDAR (1 sola vez por ciclo, ahorrando batería)
+        task.wait(1.0) 
     end
 end)
 
@@ -479,7 +499,7 @@ task.spawn(function()
                         local safePos = targetPos + (offsetDir * 3) + Vector3.new(0, 3.5, 0)
                         hrp.CFrame = CFrame.new(safePos, Vector3.new(targetPos.X, safePos.Y, targetPos.Z))
                     else
-                        hrp.CFrame = CFrame.new(hrp.Position, Vector3.new(targetPos.X, hrp.Position.Y, targetPos.Z))
+                        hrp.CFrame = CFrame.new(hrp.Position, Vector3.new(targetPos.X, safePos.Y, targetPos.Z))
                     end
                     
                     VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
