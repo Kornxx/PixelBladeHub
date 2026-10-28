@@ -1,5 +1,5 @@
 --[[
-    Shiro Hub [v2.5] - Filtro Estricto Solo "Chest", Estados Independientes y Anti-Void
+    Shiro Hub [v2.7] - Inicio Minimizado Automático, Limpieza de HUD y Filtros
 ]]
 
 local Players = game:GetService("Players")
@@ -8,9 +8,14 @@ local CoreGui = game:GetService("CoreGui")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local player = Players.LocalPlayer
 
-if CoreGui:FindFirstChild("ShiroSmartHub") then
-    CoreGui.ShiroSmartHub:Destroy()
-end
+-- Limpieza de seguridad de HUDs duplicados
+pcall(function()
+    for _, gui in ipairs(CoreGui:GetChildren()) do
+        if gui.Name == "ShiroSmartHub" then
+            gui:Destroy()
+        end
+    end
+end)
 
 if not getgenv().ShiroHubState then
     getgenv().ShiroHubState = {
@@ -60,7 +65,7 @@ player.CharacterAdded:Connect(function(char)
 end)
 
 -- ==========================================
--- INTERFAZ GRÁFICA (HUD) SHIRO HUB v2.5
+-- INTERFAZ GRÁFICA (HUD) INICIO MINIMIZADO
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "ShiroSmartHub"
@@ -68,7 +73,8 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 250, 0, 310)
+-- INICIA MINIMIZADO POR DEFECTO AL INYECTAR / REJOIN (Altura de 35 en lugar de 310)
+MainFrame.Size = UDim2.new(0, 250, 0, 35)
 MainFrame.Position = UDim2.new(0.5, -125, 0.5, -155)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
@@ -93,7 +99,7 @@ UICorner_Top.Parent = TopBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -70, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "Shiro Hub [v2.5]"
+Title.Text = "Shiro Hub [v2.7]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -104,7 +110,7 @@ Title.Parent = TopBar
 local MinimizeBtn = Instance.new("TextButton")
 MinimizeBtn.Size = UDim2.new(0, 25, 0, 25)
 MinimizeBtn.Position = UDim2.new(1, -60, 0, 5)
-MinimizeBtn.Text = "-"
+MinimizeBtn.Text = "+" -- Inicia en "+" ya que arranca minimizado
 MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 MinimizeBtn.Font = Enum.Font.GothamBold
 MinimizeBtn.TextSize = 16
@@ -127,6 +133,7 @@ local TabBar = Instance.new("Frame")
 TabBar.Size = UDim2.new(1, -20, 0, 30)
 TabBar.Position = UDim2.new(0, 10, 0, 45)
 TabBar.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+TabBar.Visible = false -- Oculto al iniciar por el estado minimizado
 TabBar.Parent = MainFrame
 Instance.new("UICorner", TabBar).CornerRadius = UDim.new(0, 6)
 
@@ -154,6 +161,7 @@ local DungeonTab = Instance.new("Frame")
 DungeonTab.Size = UDim2.new(1, 0, 1, -85)
 DungeonTab.Position = UDim2.new(0, 0, 0, 85)
 DungeonTab.BackgroundTransparency = 1
+DungeonTab.Visible = false
 DungeonTab.Parent = MainFrame
 
 local RaidTab = Instance.new("Frame")
@@ -223,7 +231,8 @@ TabRaidBtn.MouseButton1Click:Connect(function()
     TabDungeonBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
 end)
 
-local isMinimized = false
+-- ESTADO INICIAL: Arranca minimizado (True)
+local isMinimized = true 
 MinimizeBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
     if isMinimized then
@@ -231,6 +240,7 @@ MinimizeBtn.MouseButton1Click:Connect(function()
         TabBar.Visible = false
         DungeonTab.Visible = false
         RaidTab.Visible = false
+        MinimizeBtn.Text = "+"
     else
         MainFrame.Size = UDim2.new(0, 250, 0, 310)
         TabBar.Visible = true
@@ -239,6 +249,7 @@ MinimizeBtn.MouseButton1Click:Connect(function()
         else
             RaidTab.Visible = true
         end
+        MinimizeBtn.Text = "-"
     end
 end)
 
@@ -279,7 +290,6 @@ local function classifyObject(obj)
                 WorldCache.Portal = obj
             end
             
-            -- FILTRO ESTRICTO: ÚNICAMENTE COFRES COMUNES (Que contengan "chest" y nada de "black" o "locked")
             local isChest = false
             if name:find("chest") and not name:find("black") and not name:find("locked") and not name:find("key") then
                 isChest = true
@@ -455,7 +465,7 @@ task.spawn(function()
                         local safePos = targetPos + (offsetDir * 3) + Vector3.new(0, 3.5, 0)
                         hrp.CFrame = CFrame.new(safePos, Vector3.new(targetPos.X, safePos.Y, targetPos.Z))
                     else
-                        hrp.CFrame = CFrame.new(hrp.Position, Vector3.new(targetPos.X, safePos.Y, targetPos.Z))
+                        hrp.CFrame = CFrame.new(hrp.Position, Vector3.new(targetPos.X, hrp.Position.Y, targetPos.Z))
                     end
                     
                     VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
