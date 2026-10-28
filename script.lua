@@ -1,5 +1,5 @@
 --[[
-    Shiro Hub [v1.4] - Caza Universal + TP Centro Círculo + UI Scanner Profundo
+    Shiro Hub [v1.5] - Física Absoluta, Filtro Anti-Estatuas y Rendimiento Máximo
 ]]
 
 local Players = game:GetService("Players")
@@ -35,7 +35,6 @@ pcall(function()
     end
 end)
 
--- Lista de ignorados (evita maniquíes estáticos y aliados)
 local chestNames = {"chest", "crate"}
 local ignoreMobs = {
     "necromancer", "tutorial_clyde", "ally", "summon", "pet", "familiar", 
@@ -43,7 +42,7 @@ local ignoreMobs = {
 }
 
 -- ==========================================
--- INTERFAZ GRÁFICA (HUD) SHIRO HUB v1.4
+-- INTERFAZ GRÁFICA (HUD) SHIRO HUB v1.5
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "ShiroSmartHub"
@@ -76,7 +75,7 @@ UICorner_Top.Parent = TopBar
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -70, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "Shiro Hub [v1.4]"
+Title.Text = "Shiro Hub [v1.5]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -170,7 +169,6 @@ local function createButton(parent, text, yPos, stateKey, activeColor)
     return btn
 end
 
--- ======================= ELEMENTOS DUNGEON =======================
 local D_Farm = createButton(DungeonTab, "Auto-Farm Universal", 0, "AutoFarm", colorOn)
 local D_Cards = createButton(DungeonTab, "Auto-Cartas", 35, "AutoCards", colorOn)
 local D_Ulti = createButton(DungeonTab, "Auto-Habilidades (No Dash)", 70, "AutoUlti", colorOn)
@@ -179,7 +177,6 @@ local D_Zone = createButton(DungeonTab, "Auto-Avanzar Portales", 140, "AutoNextZ
 local D_Boss = createButton(DungeonTab, "Auto-Botones Jefes", 175, "AutoButtons", colorOn)
 local D_Continue = createButton(DungeonTab, "Auto-Seguir Partida", 210, "AutoContinue", colorOn)
 
--- ======================= ELEMENTOS RAID =======================
 local R_Farm = createButton(RaidTab, "Auto-Farm Universal", 0, "AutoFarm", raidColorOn)
 local R_Cards = createButton(RaidTab, "Auto-Cartas", 35, "AutoCards", raidColorOn)
 local R_Ulti = createButton(RaidTab, "Auto-Habilidades (No Dash)", 70, "AutoUlti", raidColorOn)
@@ -259,7 +256,8 @@ end)
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
 -- ==========================================
--- MOTOR 1: CACHÉ POR EVENTOS (CAZA UNIVERSAL ACTIVA)
+-- MOTOR 1: GESTOR DE MEMORIA (OPTIMIZACIÓN EXTREMA)
+-- Aquí filtramos a las decoraciones para siempre
 -- ==========================================
 local WorldCache = {
     Mobs = {},
@@ -270,21 +268,30 @@ local WorldCache = {
 
 local function classifyObject(obj)
     pcall(function()
-        if not obj or not obj.Parent then return end
+        if not obj or not obj.Parent or obj == player.Character then return end
         local name = obj.Name:lower()
 
         if obj:IsA("Model") then
             local hum = obj:FindFirstChildOfClass("Humanoid")
-            -- CAZA UNIVERSAL: Atrapa absolutamente TODO lo que tenga vida y no sea aliado/estatua
             if hum and hum.MaxHealth > 5 then
-                local isBlocked = false
-                for _, ig in ipairs(ignoreMobs) do
-                    if name:find(ig) then isBlocked = true break end
-                end
-                if not isBlocked then
-                    WorldCache.Mobs[obj] = hum
+                local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("PrimaryPart")
+                if root and root:IsA("BasePart") then
+                    
+                    -- FILTRO DEFINITIVO ANTI-ESTATUAS/DECORACIONES: 
+                    -- Los monstruos reales de Roblox nunca están anclados (Anchored = false). 
+                    -- Si está anclado, es una estatua de madera/adorno.
+                    if root.Anchored then return end
+                    
+                    -- FILTRO DE NOMBRES ALIADOS
+                    for _, ig in ipairs(ignoreMobs) do
+                        if name:find(ig) then return end
+                    end
+                    
+                    -- Si sobrevive a los filtros, se guarda en caché limpia
+                    WorldCache.Mobs[obj] = {Root = root, Humanoid = hum}
                 end
             end
+            
         elseif obj:IsA("BasePart") then
             if name == "spawn" then
                 WorldCache.Spawns[obj] = true
@@ -295,28 +302,38 @@ local function classifyObject(obj)
             end
             
             if getgenv().ShiroHubState.BreakObjects then
+                local isChest = false
                 for _, chest in ipairs(chestNames) do
                     if name:find(chest) and not name:find("black") and not name:find("key") then
-                        WorldCache.Mobs[obj] = {Health = 1, MaxHealth = 100, IsChest = true}
+                        isChest = true break
                     end
+                end
+                if isChest then
+                    WorldCache.Mobs[obj] = {Root = obj, Humanoid = {Health = 1}, IsChest = true}
                 end
             end
         end
     end)
 end
 
-Workspace.DescendantAdded:Connect(classifyObject)
+-- El delay(0.5) evita congelamientos cuando el juego carga muchos bloques de golpe
+Workspace.DescendantAdded:Connect(function(obj)
+    if obj:IsA("Model") or obj:IsA("BasePart") then
+        task.delay(0.5, function() classifyObject(obj) end)
+    end
+end)
 
 task.spawn(function()
-    local allDescendants = Workspace:GetDescendants()
-    for i, obj in ipairs(allDescendants) do
-        classifyObject(obj)
-        if i % 300 == 0 then task.wait() end 
+    for i, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") or obj:IsA("BasePart") then
+            classifyObject(obj)
+            if i % 500 == 0 then task.wait() end 
+        end
     end
 end)
 
 -- ==========================================
--- MOTOR 2: INTERFAZ PROFUNDA (Botón Seguir)
+-- MOTOR 2: AUTO-BOTONES DE UI (CON FIX DE LOBBY)
 -- ==========================================
 local function fireButtonClick(gui)
     local absPos = gui.AbsolutePosition
@@ -335,26 +352,19 @@ end
 task.spawn(function()
     while true do
         pcall(function()
-            -- 1. Auto-Seguir Profundo (Busca dentro de ImageButtons y TextLabels)
             if getgenv().ShiroHubState.AutoContinue then
                 for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
                     if (gui:IsA("TextButton") or gui:IsA("ImageButton")) and gui.Visible then
                         local fullText = ""
-                        
-                        -- Extrae el texto propio si es TextButton
-                        if gui:IsA("TextButton") then 
-                            fullText = gui.Text:lower() 
-                        end
-                        
-                        -- Extrae textos de los hijos por si usa etiquetas superpuestas
-                        for _, child in ipairs(gui:GetDescendants()) do
+                        if gui:IsA("TextButton") then fullText = gui.Text:lower() end
+                        for _, child in ipairs(gui:GetChildren()) do
                             if child:IsA("TextLabel") or child:IsA("TextBox") then
                                 fullText = fullText .. " " .. child.Text:lower()
                             end
                         end
                         
-                        -- Evalúa todo el texto encontrado en el botón
-                        if (fullText:find("seguir") or fullText:find("continuar") or fullText:find("next")) and not fullText:find("salir") and not fullText:find("lobby") then
+                        if (fullText:find("seguir") or fullText:find("continuar") or fullText:find("next") or fullText:find("retry")) 
+                           and not fullText:find("salir") and not fullText:find("lobby") then
                             fireButtonClick(gui)
                             task.wait(1.0)
                         end
@@ -362,7 +372,6 @@ task.spawn(function()
                 end
             end
 
-            -- 2. Auto-Cartas
             if getgenv().ShiroHubState.AutoCards then
                 local foundCards = {}
                 for _, gui in ipairs(player.PlayerGui:GetDescendants()) do
@@ -375,18 +384,17 @@ task.spawn(function()
                 end
                 
                 if #foundCards > 0 then
-                    local randomCard = foundCards[math.random(1, #foundCards)]
-                    fireButtonClick(randomCard)
+                    fireButtonClick(foundCards[math.random(1, #foundCards)])
                     task.wait(1.0)
                 end
             end
         end)
-        task.wait(0.5) -- Acelerado ligeramente para ganar la carrera contra el lobby timer
+        task.wait(1.0) 
     end
 end)
 
 -- ==========================================
--- MOTOR 3: COMBATE TÁCTICO Y TP DIRECTO A SPAWN
+-- MOTOR 3: COMBATE (CÁLCULOS ABSOLUTOS SIN BUG DE CAÍDA)
 -- ==========================================
 task.spawn(function()
     while true do
@@ -398,7 +406,7 @@ task.spawn(function()
                 local bestTarget = nil
                 local minDistance = math.huge
                 
-                -- Spawn Activo Cercano
+                -- Detecta el Spawn Activo Más Cercano
                 local activeSpawn = nil
                 local minSpawnDist = math.huge
                 for obj, _ in pairs(WorldCache.Spawns) do
@@ -413,27 +421,26 @@ task.spawn(function()
                     end
                 end
                 
-                -- Caza Universal
+                -- Itera SOBRE CACHÉ LIMPIA (0 Lag)
                 if getgenv().ShiroHubState.AutoFarm then
-                    for obj, hum in pairs(WorldCache.Mobs) do
-                        if obj and obj.Parent and hum and (hum.Health > 0) then
+                    for obj, data in pairs(WorldCache.Mobs) do
+                        if obj and obj.Parent and data.Root and data.Root.Parent and (data.IsChest or data.Humanoid.Health > 0) then
                             isEnemyAlive = true
-                            local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("PrimaryPart") or (obj:IsA("BasePart") and obj)
-                            if root then
-                                local dist = math.huge
-                                if getgenv().ShiroHubState.AutoTree and activeSpawn then
-                                    dist = (activeSpawn.Position - root.Position).Magnitude
-                                else
-                                    dist = (hrp.Position - root.Position).Magnitude
-                                end
-                                
-                                if dist < minDistance then
-                                    minDistance = dist
-                                    bestTarget = root
-                                end
+                            local dist = math.huge
+                            
+                            -- Radar Defensa vs Radar Normal
+                            if getgenv().ShiroHubState.AutoTree and activeSpawn then
+                                dist = (activeSpawn.Position - data.Root.Position).Magnitude
+                            else
+                                dist = (hrp.Position - data.Root.Position).Magnitude
+                            end
+                            
+                            if dist < minDistance then
+                                minDistance = dist
+                                bestTarget = data.Root
                             end
                         else
-                            WorldCache.Mobs[obj] = nil 
+                            WorldCache.Mobs[obj] = nil -- Se auto-borra si murió
                         end
                     end
                 end
@@ -441,11 +448,15 @@ task.spawn(function()
                 if WorldCache.Portal and not WorldCache.Portal.Parent then WorldCache.Portal = nil end
 
                 if bestTarget and isEnemyAlive then
-                    local distToPlayer = (hrp.Position - bestTarget.Position).Magnitude
-                    if distToPlayer > 4 then
-                        hrp.CFrame = bestTarget.CFrame * CFrame.new(0, 0, 3)
+                    local targetPos = bestTarget.Position
+                    local distToPlayer = (hrp.Position - targetPos).Magnitude
+                    
+                    -- FÍSICA ABSOLUTA: Crea un punto de anclaje flotante que ignora la rotación del objetivo
+                    if distToPlayer > 5 then
+                        -- Se posiciona 3 studs alrededor usando coordenadas del mundo puro (Imposible bug de caída)
+                        hrp.CFrame = CFrame.lookAt(targetPos + Vector3.new(0, 0, 3), targetPos)
                     else
-                        hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(bestTarget.Position.X, hrp.Position.Y, bestTarget.Position.Z))
+                        hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(targetPos.X, hrp.Position.Y, targetPos.Z))
                     end
                     
                     VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
@@ -463,21 +474,23 @@ task.spawn(function()
                 elseif not isEnemyAlive then
                     if getgenv().ShiroHubState.AutoNextZone and WorldCache.Portal then
                         if (hrp.Position - WorldCache.Portal.Position).Magnitude > 4 then
-                            hrp.CFrame = WorldCache.Portal.CFrame * CFrame.new(0, 2, 0)
+                            hrp.CFrame = CFrame.new(WorldCache.Portal.Position + Vector3.new(0, 3, 0))
                         end
                     elseif getgenv().ShiroHubState.AutoButtons and WorldCache.Button then
                         if (hrp.Position - WorldCache.Button.Position).Magnitude > 4 then
-                            hrp.CFrame = WorldCache.Button.CFrame * CFrame.new(0, 2, 2)
+                            hrp.CFrame = CFrame.new(WorldCache.Button.Position + Vector3.new(0, 3, 0))
                         end
                         task.wait(0.2)
                         VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
                         task.wait(1.0)
                         VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
                         
-                    -- TP EXACTO AL CENTRO DEL CÍRCULO (3 studs arriba para no caer)
+                    -- TP ABSOLUTO AL CÍRCULO MORADO
                     elseif getgenv().ShiroHubState.AutoTree and activeSpawn then
-                        if (hrp.Position - activeSpawn.Position).Magnitude > 3 then
-                            hrp.CFrame = activeSpawn.CFrame * CFrame.new(0, 3, 0)
+                        local spawnPos = activeSpawn.Position
+                        if (hrp.Position - spawnPos).Magnitude > 3 then
+                            -- Matemáticas Absolutas: Ignora la rotación del círculo, solo usa su posición y suma 3.5 studs de altura
+                            hrp.CFrame = CFrame.new(spawnPos + Vector3.new(0, 3.5, 0))
                         else
                             VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
                             task.wait(0.1)
